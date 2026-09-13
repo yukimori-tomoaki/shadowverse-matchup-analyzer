@@ -1,7 +1,15 @@
 import Papa from "papaparse";
 import type { MatchRecord, MatchResult } from "@/types/match";
 
-const REQUIRED_COLUMNS = ["日付(YYYY-MM-DD)", "表示日時", "自分デッキ", "相手デッキ", "手番", "勝敗", "メモ"];
+const REQUIRED_COLUMNS = [
+  "記録日時(YYYY-MM-DD HH:mm:ss)",
+  "フォーマット",
+  "自分デッキ",
+  "相手デッキ",
+  "手番",
+  "勝敗",
+  "メモ",
+];
 
 export type CsvParseResult = {
   records: MatchRecord[];
@@ -41,6 +49,8 @@ export function parseMatchCsv(text: string): CsvParseResult {
   const records: MatchRecord[] = [];
   parsed.data.forEach((row, index) => {
     const line = index + 2;
+    const recordedAt = row["記録日時(YYYY-MM-DD HH:mm:ss)"]?.trim() ?? "";
+    const format = row["フォーマット"]?.trim() ?? "";
     const myDeck = row["自分デッキ"]?.trim() ?? "";
     const opponentDeck = row["相手デッキ"]?.trim() ?? "";
     const result = normalizeResult(row["勝敗"] ?? "");
@@ -50,11 +60,10 @@ export function parseMatchCsv(text: string): CsvParseResult {
       return;
     }
 
-    const date = row["日付(YYYY-MM-DD)"]?.trim() ?? "";
     records.push({
-      id: `${date}-${row["表示日時"] ?? ""}-${myDeck}-${opponentDeck}-${row["手番"] ?? ""}-${result}-${index}`,
-      date,
-      displayDate: row["表示日時"]?.trim() ?? "",
+      id: `${recordedAt}-${format}-${myDeck}-${opponentDeck}-${row["手番"] ?? ""}-${result}-${index}`,
+      date: recordedAt,
+      format,
       myDeck,
       opponentDeck,
       turn: row["手番"]?.trim() || "不明",

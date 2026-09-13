@@ -13,6 +13,7 @@ create table if not exists public.guest_publications (
   updated_at timestamptz not null default now()
 );
 alter table public.guest_publications add column if not exists updated_at timestamptz not null default now();
+alter table public.matches add column if not exists format text not null default '';
 
 alter table public.public_shares enable row level security;
 alter table public.guest_publications enable row level security;
@@ -62,10 +63,12 @@ begin
 end;
 $$;
 
+drop function if exists public.get_guest_publication(text);
+
 create or replace function public.get_guest_publication(public_token text)
-returns table (id text, date text, display_date text, my_deck text, opponent_deck text, turn text, result text, memo text)
+returns table (id text, date text, format text, display_date text, my_deck text, opponent_deck text, turn text, result text, memo text)
 language sql security definer set search_path = public as $$
-  select item->>'id', item->>'date', coalesce(item->>'displayDate', ''), item->>'myDeck', item->>'opponentDeck', coalesce(item->>'turn', '不明'), item->>'result', coalesce(item->>'memo', '')
+  select item->>'id', item->>'date', coalesce(item->>'format', ''), coalesce(item->>'displayDate', ''), item->>'myDeck', item->>'opponentDeck', coalesce(item->>'turn', '不明'), item->>'result', coalesce(item->>'memo', '')
   from public.guest_publications publication, jsonb_array_elements(publication.records) item
   where publication.token = public_token;
 $$;
@@ -97,6 +100,7 @@ $$;
 create table if not exists public.public_board_matches (
   id text primary key,
   date text not null,
+  format text not null default '',
   display_date text not null default '',
   my_deck text not null,
   opponent_deck text not null,
@@ -106,6 +110,8 @@ create table if not exists public.public_board_matches (
   created_at timestamptz not null default now()
 );
 
+alter table public.public_board_matches add column if not exists format text not null default '';
+
 alter table public.public_board_matches enable row level security;
 drop policy if exists "public can view public board" on public.public_board_matches;
 create policy "public can view public board" on public.public_board_matches for select using (true);
@@ -114,9 +120,9 @@ create or replace function public.append_public_board_matches(public_records jso
 returns void language plpgsql security definer set search_path = public as $$
 begin
   if jsonb_typeof(public_records) <> 'array' or jsonb_array_length(public_records) = 0 or jsonb_array_length(public_records) > 5000 then raise exception 'Invalid record count'; end if;
-  insert into public.public_board_matches (id, date, display_date, my_deck, opponent_deck, turn, result, memo)
-  select id, date, coalesce("displayDate", ''), "myDeck", "opponentDeck", coalesce(turn, '不明'), result, coalesce(memo, '')
-  from jsonb_to_recordset(public_records) as records(id text, date text, "displayDate" text, "myDeck" text, "opponentDeck" text, turn text, result text, memo text)
+  insert into public.public_board_matches (id, date, format, display_date, my_deck, opponent_deck, turn, result, memo)
+  select id, date, coalesce(format, ''), coalesce("displayDate", ''), "myDeck", "opponentDeck", coalesce(turn, '不明'), result, coalesce(memo, '')
+  from jsonb_to_recordset(public_records) as records(id text, date text, format text, "displayDate" text, "myDeck" text, "opponentDeck" text, turn text, result text, memo text)
   on conflict (id) do nothing;
 end;
 $$;

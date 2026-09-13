@@ -4,7 +4,7 @@ export type MatchResult = "WIN" | "LOSS";
 export type MatchRecord = {
   id: string;
   date: string;
-  displayDate: string;
+  format: string;
   myDeck: string;
   opponentDeck: string;
   turn: Turn;
