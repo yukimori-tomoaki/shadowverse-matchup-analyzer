@@ -19,11 +19,12 @@ export default function PublicSharePage({ params }: { params: Promise<{ token: s
   useEffect(() => { void params.then(({ token: nextToken }) => setToken(nextToken)); startTransition(() => setGuest(new URLSearchParams(window.location.search).get("guest") === "1")); }, [params]);
   useEffect(() => {
     if (!token || !supabase) return;
+    const client = supabase;
     let active = true;
     const refresh = () => { void (guest ? loadGuestMatches(token) : loadPublicMatches(token)).then((next) => { if (active) setRecords(next); }).catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "公開データを読み込めませんでした。"); }); };
     refresh();
-    const channel = guest ? null : supabase.channel(`public-share-${token}`).on("postgres_changes", { event: "*", schema: "public", table: "matches" }, refresh).subscribe();
-    return () => { active = false; if (channel) void supabase.removeChannel(channel); };
+    const channel = guest ? null : client.channel(`public-share-${token}`).on("postgres_changes", { event: "*", schema: "public", table: "matches" }, refresh).subscribe();
+    return () => { active = false; if (channel) void client.removeChannel(channel); };
   }, [guest, token]);
 
   const decks = useMemo(() => getDecks(records), [records]);
