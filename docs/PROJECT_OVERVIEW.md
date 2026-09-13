@@ -19,7 +19,7 @@ Supabase共有DBへ対戦データを追加
 
 閲覧者
   ↓
-https://<公開ドメイン>/share
+https://shadowverse-matchup-analyzer.vercel.app/share
   ↓
 最新の相性表を閲覧
 ```
@@ -78,7 +78,7 @@ https://<公開ドメイン>/share
 URL：
 
 ```text
-https://<公開ドメイン>/
+https://shadowverse-matchup-analyzer-61l3v7fl0-yukimori-tomoaki.vercel.app/
 ```
 
 用途：
@@ -95,7 +95,7 @@ https://<公開ドメイン>/
 URL：
 
 ```text
-https://<公開ドメイン>/share
+https://shadowverse-matchup-analyzer.vercel.app/share
 ```
 
 用途：
