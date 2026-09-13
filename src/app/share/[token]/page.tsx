@@ -4,7 +4,8 @@ import { Database, Eye, ShieldAlert } from "lucide-react";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import { MatchupTable } from "@/components/MatchupTable";
 import { MatchupDetail } from "@/components/MatchupDetail";
-import { loadGuestMatches, loadPublicMatches } from "@/lib/publicShare";
+import { loadPublicBoard } from "@/lib/publicBoard";
+import { loadPublicMatches } from "@/lib/publicShare";
 import { getDecks } from "@/lib/matchupCalculator";
 import { supabase } from "@/lib/supabase";
 import type { MatchRecord, MatchupStats } from "@/types/match";
@@ -21,9 +22,9 @@ export default function PublicSharePage({ params }: { params: Promise<{ token: s
     if (!token || !supabase) return;
     const client = supabase;
     let active = true;
-    const refresh = () => { void (guest ? loadGuestMatches(token) : loadPublicMatches(token)).then((next) => { if (active) setRecords(next); }).catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "公開データを読み込めませんでした。"); }); };
+    const refresh = () => { void (guest ? loadPublicBoard() : loadPublicMatches(token)).then((next) => { if (active) setRecords(next); }).catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "公開データを読み込めませんでした。"); }); };
     refresh();
-    const channel = client.channel(`public-share-${token}`).on("postgres_changes", { event: "*", schema: "public", table: guest ? "guest_publications" : "matches", ...(guest ? { filter: `token=eq.${token}` } : {}) }, refresh).subscribe();
+    const channel = guest ? client.channel("public-board-legacy-share").on("postgres_changes", { event: "*", schema: "public", table: "public_board_matches" }, refresh).subscribe() : client.channel(`public-share-${token}`).on("postgres_changes", { event: "*", schema: "public", table: "matches" }, refresh).subscribe();
     return () => { active = false; if (channel) void client.removeChannel(channel); };
   }, [guest, token]);
 
