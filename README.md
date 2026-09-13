@@ -34,6 +34,7 @@ CSVを追加すると、既存データへ追記されます。同一CSV行のID
 
 ## 取扱説明書
 
+- プロジェクト概要: `docs/PROJECT_OVERVIEW.md`
 - 開発者向け: `docs/DEVELOPER_GUIDE.md`
 - 閲覧者向け: `docs/VIEWER_GUIDE.md`
 
