@@ -149,7 +149,14 @@ create trigger on_auth_user_created after insert on auth.users for each row exec
 
 alter table public.matches replica identity full;
 alter publication supabase_realtime add table public.matches;
-alter publication supabase_realtime add table public.guest_publications;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_rel pr join pg_publication p on p.oid = pr.prpubid join pg_class c on c.oid = pr.prrelid join pg_namespace n on n.oid = c.relnamespace
+    where p.pubname = 'supabase_realtime' and n.nspname = 'public' and c.relname = 'guest_publications'
+  ) then alter publication supabase_realtime add table public.guest_publications; end if;
+end
+$$;
 
 create table if not exists public.public_board_matches (
   id text primary key,
@@ -185,4 +192,11 @@ $$;
 grant execute on function public.append_public_board_matches(jsonb) to anon, authenticated;
 grant execute on function public.get_public_board_matches() to anon, authenticated;
 alter table public.public_board_matches replica identity full;
-alter publication supabase_realtime add table public.public_board_matches;
+do $$
+begin
+  if not exists (
+    select 1 from pg_publication_rel pr join pg_publication p on p.oid = pr.prpubid join pg_class c on c.oid = pr.prrelid join pg_namespace n on n.oid = c.relnamespace
+    where p.pubname = 'supabase_realtime' and n.nspname = 'public' and c.relname = 'public_board_matches'
+  ) then alter publication supabase_realtime add table public.public_board_matches; end if;
+end
+$$;
