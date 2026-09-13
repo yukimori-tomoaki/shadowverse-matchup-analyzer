@@ -129,7 +129,7 @@ CSV追加はブラウザのlocalStorageではなく、Supabaseの`public_board_m
 必須ヘッダー：
 
 ```text
-日付(YYYY-MM-DD),表示日時,自分デッキ,相手デッキ,手番,勝敗,メモ
+記録日時(YYYY-MM-DD HH:mm:ss),フォーマット,自分デッキ,相手デッキ,手番,勝敗,メモ
 ```
 
 - 区切り文字はカンマまたはタブ

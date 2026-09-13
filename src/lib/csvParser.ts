@@ -49,6 +49,8 @@ export function parseMatchCsv(text: string): CsvParseResult {
   const records: MatchRecord[] = [];
   parsed.data.forEach((row, index) => {
     const line = index + 2;
+    const recordedAt = row["記録日時(YYYY-MM-DD HH:mm:ss)"]?.trim() ?? "";
+    const format = row["フォーマット"]?.trim() ?? "";
     const myDeck = row["自分デッキ"]?.trim() ?? "";
     const opponentDeck = row["相手デッキ"]?.trim() ?? "";
     const result = normalizeResult(row["勝敗"] ?? "");
@@ -58,15 +60,10 @@ export function parseMatchCsv(text: string): CsvParseResult {
       return;
     }
 
-    const recordedAt =
-     row["記録日時(YYYY-MM-DD HH:mm:ss)"]?.trim() ?? "";
-    const format = row["フォーマット"]?.trim() ?? "";
-    
     records.push({
       id: `${recordedAt}-${format}-${myDeck}-${opponentDeck}-${row["手番"] ?? ""}-${result}-${index}`,
       date: recordedAt,
       format,
-      displayDate: row["表示日時"]?.trim() ?? "",
       myDeck,
       opponentDeck,
       turn: row["手番"]?.trim() || "不明",

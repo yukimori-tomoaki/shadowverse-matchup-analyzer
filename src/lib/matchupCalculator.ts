@@ -35,7 +35,7 @@ export function filterMatches(records: MatchRecord[], period: string, startDate:
   const iso = (date: Date) => date.toISOString().slice(0, 10);
   const periodStart = period === "today" ? iso(today) : period === "7days" ? iso(new Date(today.getTime() - 6 * 86400000)) : period === "30days" ? iso(new Date(today.getTime() - 29 * 86400000)) : "";
   return records.filter((record) => {
-    const inPeriod = period === "all" || (period === "custom" ? (!startDate || record.date >= startDate) && (!endDate || record.date <= endDate) : record.date >= periodStart);
+    const inPeriod = period === "all" || (period === "custom" ? (!startDate || record.date >= startDate) && (!endDate || record.date < `${endDate}~`) : record.date >= periodStart);
     return inPeriod && (!myDeck || record.myDeck === myDeck) && (turn === "all" || record.turn === turn);
   });
 }

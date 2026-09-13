@@ -19,7 +19,7 @@ Supabase共有DBへ対戦データを追加
 
 閲覧者
   ↓
-https://<公開ドメイン>/share
+https://shadowverse-matchup-analyzer.vercel.app/share
   ↓
 最新の相性表を閲覧
 ```
@@ -78,7 +78,7 @@ https://<公開ドメイン>/share
 URL：
 
 ```text
-https://<公開ドメイン>/
+https://shadowverse-matchup-analyzer-61l3v7fl0-yukimori-tomoaki.vercel.app/
 ```
 
 用途：
@@ -95,7 +95,7 @@ https://<公開ドメイン>/
 URL：
 
 ```text
-https://<公開ドメイン>/share
+https://shadowverse-matchup-analyzer.vercel.app/share
 ```
 
 用途：
@@ -114,7 +114,7 @@ https://<公開ドメイン>/share
 type MatchRecord = {
   id: string;
   date: string;
-  displayDate: string;
+  format: string;
   myDeck: string;
   opponentDeck: string;
   turn: string;
@@ -137,7 +137,7 @@ CSVの`LOSE`は、読み込み時に`LOSS`へ変換されます。DB内では勝
 
 - `id`: レコードID
 - `date`: 対戦日
-- `display_date`: 表示日時
+- `format`: フォーマット
 - `my_deck`: 自分のデッキ
 - `opponent_deck`: 相手のデッキ
 - `turn`: 先攻・後攻

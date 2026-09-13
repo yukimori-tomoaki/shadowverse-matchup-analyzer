@@ -1,7 +1,7 @@
 import type { MatchRecord } from "@/types/match";
 import { supabase } from "@/lib/supabase";
 
-type MatchRow = { id: string; workspace_id: string; date: string; display_date: string; my_deck: string; opponent_deck: string; turn: string; result: MatchRecord["result"]; memo: string };
+type MatchRow = { id: string; workspace_id: string; date: string; format: string; my_deck: string; opponent_deck: string; turn: string; result: MatchRecord["result"]; memo: string };
 
 export async function loadCloudMatches(workspaceId: string): Promise<MatchRecord[]> {
   if (!supabase) return [];
@@ -10,7 +10,7 @@ export async function loadCloudMatches(workspaceId: string): Promise<MatchRecord
   return (data as MatchRow[]).map((row) => ({
     id: row.id,
     date: row.date,
-    displayDate: row.display_date,
+    format: row.format ?? "",
     myDeck: row.my_deck,
     opponentDeck: row.opponent_deck,
     turn: row.turn,
@@ -21,7 +21,7 @@ export async function loadCloudMatches(workspaceId: string): Promise<MatchRecord
 
 export async function insertCloudMatches(workspaceId: string, records: MatchRecord[]) {
   if (!supabase) return;
-  const rows = records.map(({ id, date, displayDate, myDeck, opponentDeck, turn, result, memo }) => ({ id, date, display_date: displayDate, my_deck: myDeck, opponent_deck: opponentDeck, turn, result, memo, workspace_id: workspaceId }));
+  const rows = records.map(({ id, date, format, myDeck, opponentDeck, turn, result, memo }) => ({ id, date, format, my_deck: myDeck, opponent_deck: opponentDeck, turn, result, memo, workspace_id: workspaceId }));
   const { error } = await supabase.from("matches").upsert(rows, { onConflict: "id" });
   if (error) throw error;
 }
