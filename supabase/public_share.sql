@@ -77,3 +77,43 @@ revoke all on function public.get_guest_publication(text) from public;
 grant execute on function public.get_guest_publication(text) to anon, authenticated;
 
 alter publication supabase_realtime add table public.guest_publications;
+
+-- Shared public board: all CSV imports append to one realtime dataset.
+create table if not exists public.public_board_matches (
+  id text primary key,
+  date text not null,
+  display_date text not null default '',
+  my_deck text not null,
+  opponent_deck text not null,
+  turn text not null default '不明',
+  result text not null check (result in ('WIN', 'LOSS')),
+  memo text not null default '',
+  created_at timestamptz not null default now()
+);
+
+alter table public.public_board_matches enable row level security;
+drop policy if exists "public can view public board" on public.public_board_matches;
+create policy "public can view public board" on public.public_board_matches for select using (true);
+
+create or replace function public.append_public_board_matches(public_records jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if jsonb_typeof(public_records) <> 'array' or jsonb_array_length(public_records) = 0 or jsonb_array_length(public_records) > 5000 then raise exception 'Invalid record count'; end if;
+  insert into public.public_board_matches (id, date, display_date, my_deck, opponent_deck, turn, result, memo)
+  select id, date, coalesce("displayDate", ''), "myDeck", "opponentDeck", coalesce(turn, '不明'), result, coalesce(memo, '')
+  from jsonb_to_recordset(public_records) as records(id text, date text, "displayDate" text, "myDeck" text, "opponentDeck" text, turn text, result text, memo text)
+  on conflict (id) do nothing;
+end;
+$$;
+
+create or replace function public.get_public_board_matches()
+returns setof public.public_board_matches language sql security definer set search_path = public as $$
+  select * from public.public_board_matches order by date desc, created_at desc;
+$$;
+
+revoke all on function public.append_public_board_matches(jsonb) from public;
+grant execute on function public.append_public_board_matches(jsonb) to anon, authenticated;
+revoke all on function public.get_public_board_matches() from public;
+grant execute on function public.get_public_board_matches() to anon, authenticated;
+alter table public.public_board_matches replica identity full;
+alter publication supabase_realtime add table public.public_board_matches;

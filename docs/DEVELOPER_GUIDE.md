@@ -4,15 +4,14 @@
 
 Shadowverseの対戦結果CSV/TSVを読み込み、デッキ別の勝率・勝敗数・対戦数・先攻後攻の傾向を表示するWebアプリです。
 
-現在の共有方式はログイン不要の公開URL方式です。
+現在の共有方式はログイン不要の共有ボード方式です。
 
 ```text
 CSV読み込み
   -> ブラウザで解析
-  -> Supabaseへ公開データを保存
-  -> /share/<token>?guest=1 で閲覧
-  -> CSV追加時は同じURLを更新
-  -> 閲覧者へRealtime反映
+  -> Supabaseの共有ボードへ追記
+  -> /share で閲覧
+  -> 管理画面と閲覧者へRealtime反映
 ```
 
 CSVファイル自体をアップロードするのではなく、解析済みの対戦レコードをSupabaseへ保存します。
@@ -33,6 +32,7 @@ CSVファイル自体をアップロードするのではなく、解析済み�
 - `src/lib/matchupCalculator.ts`: 勝率・相性集計
 - `src/lib/guestPublish.ts`: 公開データの作成・更新
 - `src/lib/publicShare.ts`: 公開データの取得
+- `src/lib/publicBoard.ts`: 共有ボードの追加・取得
 - `supabase/public_share.sql`: 既存Supabase向け設定
 
 ## 3. ローカル開発
@@ -73,6 +73,8 @@ Supabase SQL Editorで `supabase/public_share.sql` を実行します。
 - ゲスト公開データ更新RPC
 - ゲスト公開データ取得RPC
 - `guest_publications` のRealtime設定
+- `public_board_matches` 共有テーブル
+- 共有ボードへの追加・取得RPC
 - 匿名閲覧用RLS
 
 SQL実行後に、SupabaseのTable Editorで `guest_publications` が存在することを確認します。
@@ -111,17 +113,16 @@ Vercelでは **Settings → Environment Variables** に同じ2つを登録しま
 
 1. Vercel公開サイトを開く
 2. CSV/TSVを読み込む
-3. 「ログインなしで相性表を公開」を押す
-4. 発行されたURLをコピーする
-5. 閲覧者へURLを共有する
+3. 共有DBへ自動登録されることを確認する
+4. 固定URL `/share` を閲覧者へ共有する
 
 公開URLの形式：
 
 ```text
-https://<vercel-domain>/share/<token>?guest=1
+https://<vercel-domain>/share
 ```
 
-公開URLは、発行したブラウザのlocalStorageにも保存されます。同じブラウザでCSVを追加すると、同じトークンへ全データを更新します。
+CSV追加はブラウザのlocalStorageではなく、Supabaseの`public_board_matches`へ保存されます。別のブラウザからでも同じ共有ボードを閲覧できます。
 
 ## 8. データ仕様
 
