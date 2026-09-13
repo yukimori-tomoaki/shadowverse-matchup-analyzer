@@ -5,13 +5,13 @@ import { useState } from "react";
 import { publishGuestMatches } from "@/lib/guestPublish";
 import type { MatchRecord } from "@/types/match";
 
-export function GuestPublishPanel({ records }: { records: MatchRecord[] }) {
+export function GuestPublishPanel({ records, onPublished }: { records: MatchRecord[]; onPublished?: (token: string) => void }) {
   const [shareUrl, setShareUrl] = useState("");
   const [message, setMessage] = useState("");
   const [working, setWorking] = useState(false);
 
   const publish = async () => {
-    try { setWorking(true); setMessage(""); setShareUrl(await publishGuestMatches(records)); }
+    try { setWorking(true); setMessage(""); const result = await publishGuestMatches(records); setShareUrl(result.url); onPublished?.(result.token); }
     catch (error) { setMessage(error instanceof Error ? error.message : "公開URLを作成できませんでした。"); }
     finally { setWorking(false); }
   };

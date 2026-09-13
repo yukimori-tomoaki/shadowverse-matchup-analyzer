@@ -9,11 +9,15 @@ create table if not exists public.public_shares (
 create table if not exists public.guest_publications (
   token text primary key,
   records jsonb not null,
-  created_at timestamptz not null default now()
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
 );
+alter table public.guest_publications add column if not exists updated_at timestamptz not null default now();
 
 alter table public.public_shares enable row level security;
 alter table public.guest_publications enable row level security;
+drop policy if exists "public can receive guest publication updates" on public.guest_publications;
+create policy "public can receive guest publication updates" on public.guest_publications for select using (true);
 
 drop policy if exists "anyone can view enabled public shares" on public.public_shares;
 drop policy if exists "editors can create public shares" on public.public_shares;
@@ -45,7 +49,16 @@ returns void language plpgsql security definer set search_path = public as $$
 begin
   if length(public_token) < 24 or length(public_token) > 80 then raise exception 'Invalid publication token'; end if;
   if jsonb_typeof(public_records) <> 'array' or jsonb_array_length(public_records) = 0 or jsonb_array_length(public_records) > 5000 then raise exception 'Invalid record count'; end if;
-  insert into public.guest_publications (token, records) values (public_token, public_records);
+  insert into public.guest_publications (token, records, updated_at) values (public_token, public_records, now());
+end;
+$$;
+
+create or replace function public.update_guest_publication(public_token text, public_records jsonb)
+returns void language plpgsql security definer set search_path = public as $$
+begin
+  if jsonb_typeof(public_records) <> 'array' or jsonb_array_length(public_records) = 0 or jsonb_array_length(public_records) > 5000 then raise exception 'Invalid record count'; end if;
+  update public.guest_publications set records = public_records, updated_at = now() where token = public_token;
+  if not found then raise exception 'Publication not found'; end if;
 end;
 $$;
 
@@ -59,5 +72,8 @@ $$;
 
 revoke all on function public.create_guest_publication(text, jsonb) from public;
 grant execute on function public.create_guest_publication(text, jsonb) to anon, authenticated;
+grant execute on function public.update_guest_publication(text, jsonb) to anon, authenticated;
 revoke all on function public.get_guest_publication(text) from public;
 grant execute on function public.get_guest_publication(text) to anon, authenticated;
+
+alter publication supabase_realtime add table public.guest_publications;

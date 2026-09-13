@@ -23,7 +23,7 @@ export default function PublicSharePage({ params }: { params: Promise<{ token: s
     let active = true;
     const refresh = () => { void (guest ? loadGuestMatches(token) : loadPublicMatches(token)).then((next) => { if (active) setRecords(next); }).catch((reason: unknown) => { if (active) setError(reason instanceof Error ? reason.message : "公開データを読み込めませんでした。"); }); };
     refresh();
-    const channel = guest ? null : client.channel(`public-share-${token}`).on("postgres_changes", { event: "*", schema: "public", table: "matches" }, refresh).subscribe();
+    const channel = client.channel(`public-share-${token}`).on("postgres_changes", { event: "*", schema: "public", table: guest ? "guest_publications" : "matches", ...(guest ? { filter: `token=eq.${token}` } : {}) }, refresh).subscribe();
     return () => { active = false; if (channel) void client.removeChannel(channel); };
   }, [guest, token]);
 
