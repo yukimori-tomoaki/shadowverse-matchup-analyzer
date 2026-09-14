@@ -106,24 +106,39 @@ export function MatchupTable({
           </thead>
           <tbody>
             {myRowDecks.map((rowDeck) => (
-              <tr key={rowDeck}>
-                <th>{rowDeck}</th>
-                {opponentColumnDecks.map((columnDeck) => {
-                  if (rowDeck === columnDeck) return <td className="diagonal" key={columnDeck}>—</td>;
-                  const stats = calculateMatchup(records, rowDeck, columnDeck);
-                  if (stats.total === 0) return <td key={columnDeck} className="matrix-empty" />;
-                  const tone = matchupTone(stats.winRate, stats.total);
-                  return (
-                    <td key={columnDeck}>
-                      <button className={`matrix-cell ${tone.tone}`} onClick={() => onSelect(stats)}>
-                        <strong>{`${stats.winRate.toFixed(1)}%`}</strong>
-                        <span>{stats.wins} - {stats.losses}</span>
-                        <small>{stats.total}戦 · {tone.label}</small>
-                      </button>
-                    </td>
-                  );
-                })}
-              </tr>
+              <>
+                <tr key={rowDeck}>
+                  <th>{rowDeck}</th>
+                  {opponentColumnDecks.map((columnDeck) => {
+                    if (rowDeck === columnDeck) return <td className="diagonal" key={columnDeck}>—</td>;
+                    const stats = calculateMatchup(records, rowDeck, columnDeck);
+                    if (stats.total === 0) return <td key={columnDeck} className="matrix-empty" />;
+                    const tone = matchupTone(stats.winRate, stats.total);
+                    return (
+                      <td key={columnDeck}>
+                        <button className={`matrix-cell ${tone.tone}`} onClick={() => onSelect(stats)}>
+                          <strong>{`${stats.winRate.toFixed(1)}%`}</strong>
+                          <span>{stats.wins} - {stats.losses}</span>
+                          <small>{stats.total}戦 ・ {tone.label}</small>
+                        </button>
+                      </td>
+                    );
+                  })}
+                </tr>
+                <tr className="row-stats">
+                  <th></th>
+                  <td colSpan={opponentColumnDecks.length}>
+                    {(() => {
+                      const own = records.filter((r) => r.myDeck === rowDeck);
+                      const total = own.length;
+                      const wins = own.filter((r) => r.result === "WIN").length;
+                      const losses = own.filter((r) => r.result === "LOSS").length;
+                      return `match-${total} win-${wins} lose-${losses}`;
+                    })()}
+                  </td>
+                </tr>
+              </>
+            ))}
             ))}
           </tbody>
         </table>
