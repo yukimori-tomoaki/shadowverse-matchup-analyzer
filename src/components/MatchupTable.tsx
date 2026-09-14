@@ -126,7 +126,7 @@ const [showFull, setShowFull] = useState(false);
                         const total = own.length;
                         const wins = own.filter((r) => r.result === "WIN").length;
                         const losses = own.filter((r) => r.result === "LOSS").length;
-                        return `match-${total} win-${wins} lose-${losses}`;
+                        return `win-${wins} lose-${losses} match-${total}`;
                       })()}</div>
                     </th>
                   {opponentColumnDecks.map((columnDeck) => {
