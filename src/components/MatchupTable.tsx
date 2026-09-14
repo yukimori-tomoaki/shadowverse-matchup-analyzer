@@ -117,7 +117,7 @@ const [showFull, setShowFull] = useState(false);
           </thead>
           <tbody>
             {myRowDecks.map((rowDeck) => (
-              <>
+              
                 <tr key={rowDeck}>
                   <th>
                       <div>{rowDeck}</div>
@@ -146,8 +146,8 @@ const [showFull, setShowFull] = useState(false);
                   })}
                 </tr>
 
-              </>
-            )}
+              
+            ))}
 
           </tbody>
         </table>
