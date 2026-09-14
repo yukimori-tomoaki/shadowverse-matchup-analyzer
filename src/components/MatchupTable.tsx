@@ -21,6 +21,8 @@ export function MatchupTable({
 }) {
   const panelRef = useRef<HTMLElement>(null);
   const [downloading, setDownloading] = useState(false);
+const [showFull, setShowFull] = useState(false);
+  
 
   const myRowDecks = rowDecks ?? (decks && decks.length > 0 ? decks : getMyDecks(records));
   const opponentColumnDecks = columnDecks ?? getOpponentDecks(records);
@@ -94,9 +96,18 @@ export function MatchupTable({
             <Download size={14} />
             <span>{downloading ? "PNG生成中..." : "PNG保存"}</span>
           </button>
+          <button
+            type="button"
+            className="button button-ghost no-export"
+            onClick={() => setShowFull(prev => !prev)}
+            style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
+            title="スクロールモードと全画面モードを切り替え"
+          >
+            {showFull ? "スクロールモード" : "全画面モード"}
+          </button>
         </div>
       </div>
-      <div className="matrix-scroll">
+      <div className={"matrix-scroll " + (showFull ? "matrix-full" : "")}>
         <table className="matrix">
           <thead>
             <tr>
@@ -108,7 +119,16 @@ export function MatchupTable({
             {myRowDecks.map((rowDeck) => (
               <>
                 <tr key={rowDeck}>
-                  <th>{rowDeck}</th>
+                  <th>
+                      <div>{rowDeck}</div>
+                      <div className="row-stats-text">{(() => {
+                        const own = records.filter((r) => r.myDeck === rowDeck);
+                        const total = own.length;
+                        const wins = own.filter((r) => r.result === "WIN").length;
+                        const losses = own.filter((r) => r.result === "LOSS").length;
+                        return `match-${total} win-${wins} lose-${losses}`;
+                      })()}</div>
+                    </th>
                   {opponentColumnDecks.map((columnDeck) => {
                     if (rowDeck === columnDeck) return <td className="diagonal" key={columnDeck}>—</td>;
                     const stats = calculateMatchup(records, rowDeck, columnDeck);
@@ -125,20 +145,9 @@ export function MatchupTable({
                     );
                   })}
                 </tr>
-                <tr className="row-stats">
-                  <th></th>
-                  <td colSpan={opponentColumnDecks.length}>
-                    {(() => {
-                      const own = records.filter((r) => r.myDeck === rowDeck);
-                      const total = own.length;
-                      const wins = own.filter((r) => r.result === "WIN").length;
-                      const losses = own.filter((r) => r.result === "LOSS").length;
-                      return `match-${total} win-${wins} lose-${losses}`;
-                    })()}
-                  </td>
-                </tr>
+
               </>
-            ))}
+            )}
 
           </tbody>
         </table>

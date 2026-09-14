@@ -69,3 +69,16 @@ button { cursor: pointer; }
 }
 .total-matches strong { font-size: 2rem; }
 .total-matches small { font-size: 0.75rem; color: var(--muted); }
+/* Full-screen mode for matchup matrix */
+.matrix-full {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Inline stats inside deck name cell */
+.row-stats-text {
+  font-size: 0.85rem;
+  color: var(--muted);
+  text-align: center;
+  margin-top: 4px;
+}
