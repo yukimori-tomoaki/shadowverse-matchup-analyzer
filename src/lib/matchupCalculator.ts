@@ -64,9 +64,14 @@ export function getDecks(records: MatchRecord[]): string[] {
   return sortDecks(existing);
 }
 
-export function getMatrixDecks(records: MatchRecord[]): string[] {
+export function getMyDecks(records: MatchRecord[]): string[] {
   const myDecks = Array.from(new Set(records.map((record) => record.myDeck).filter(Boolean)));
   return sortDecks(myDecks);
+}
+
+export function getOpponentDecks(records: MatchRecord[]): string[] {
+  const opponentDecks = Array.from(new Set(records.map((record) => record.opponentDeck).filter(Boolean)));
+  return sortDecks(opponentDecks);
 }
 
 export function calculateMatchup(records: MatchRecord[], myDeck: string, opponentDeck: string): MatchupStats {

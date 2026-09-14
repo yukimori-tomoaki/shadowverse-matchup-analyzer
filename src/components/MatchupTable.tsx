@@ -2,13 +2,28 @@
 
 import { Download, Grid3X3 } from "lucide-react";
 import { useRef, useState } from "react";
-import { toPng } from "html-to-image";
-import { calculateMatchup, matchupTone } from "@/lib/matchupCalculator";
+import html2canvas from "html2canvas";
+import { calculateMatchup, getMyDecks, getOpponentDecks, matchupTone } from "@/lib/matchupCalculator";
 import type { MatchRecord, MatchupStats } from "@/types/match";
 
-export function MatchupTable({ records, decks, onSelect }: { records: MatchRecord[]; decks: string[]; onSelect: (stats: MatchupStats) => void }) {
+export function MatchupTable({
+  records,
+  decks,
+  rowDecks,
+  columnDecks,
+  onSelect,
+}: {
+  records: MatchRecord[];
+  decks?: string[];
+  rowDecks?: string[];
+  columnDecks?: string[];
+  onSelect: (stats: MatchupStats) => void;
+}) {
   const panelRef = useRef<HTMLElement>(null);
   const [downloading, setDownloading] = useState(false);
+
+  const myRowDecks = rowDecks ?? (decks && decks.length > 0 ? decks : getMyDecks(records));
+  const opponentColumnDecks = columnDecks ?? getOpponentDecks(records);
 
   const handleDownloadPng = async () => {
     if (!panelRef.current || downloading) return;
@@ -32,18 +47,13 @@ export function MatchupTable({ records, decks, onSelect }: { records: MatchRecor
 
       await new Promise((resolve) => setTimeout(resolve, 80));
 
-      const dataUrl = await toPng(panelRef.current, {
+      const canvas = await html2canvas(panelRef.current as HTMLElement, {
         backgroundColor: "#0c1827",
-        pixelRatio: 2,
-        cacheBust: true,
+        scale: 2,
         width: requiredWidth,
-        filter: (node) => {
-          if (node instanceof HTMLElement && node.classList.contains("no-export")) {
-            return false;
-          }
-          return true;
-        },
+        ignoreElements: (element) => element instanceof HTMLElement && element.classList.contains("no-export"),
       });
+      const dataUrl = canvas.toDataURL();
 
       if (scrollEl) {
         scrollEl.style.overflow = originalOverflow;
@@ -91,14 +101,14 @@ export function MatchupTable({ records, decks, onSelect }: { records: MatchRecor
           <thead>
             <tr>
               <th>自分＼相手</th>
-              {decks.map((deck) => <th key={deck}>{deck}</th>)}
+              {opponentColumnDecks.map((deck) => <th key={deck}>{deck}</th>)}
             </tr>
           </thead>
           <tbody>
-            {decks.map((rowDeck) => (
+            {myRowDecks.map((rowDeck) => (
               <tr key={rowDeck}>
                 <th>{rowDeck}</th>
-                {decks.map((columnDeck) => {
+                {opponentColumnDecks.map((columnDeck) => {
                   if (rowDeck === columnDeck) return <td className="diagonal" key={columnDeck}>—</td>;
                   const stats = calculateMatchup(records, rowDeck, columnDeck);
                   if (stats.total === 0) return <td key={columnDeck} className="matrix-empty" />;
