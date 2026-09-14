@@ -138,8 +138,8 @@ export function MatchupTable({
                   </td>
                 </tr>
               </>
-            ))}
-            ))}
+            )}
+
           </tbody>
         </table>
       </div>
