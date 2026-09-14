@@ -2,8 +2,47 @@ import type { MatchRecord, MatchupStats } from "@/types/match";
 
 export const winRate = (wins: number, total: number) => (total === 0 ? 0 : (wins / total) * 100);
 
-export function getDecks(records: MatchRecord[]) {
-  return Array.from(new Set(records.flatMap((record) => [record.myDeck, record.opponentDeck]))).sort((a, b) => a.localeCompare(b, "ja"));
+export const ORDERED_DECKS = [
+  "テンポエルフ",
+  "進化エルフ",
+  "連携ロイヤル",
+  "海賊ロイヤル",
+  "魔手ウィッチ",
+  "スペルウィッチ",
+  "セフィーウィッチ",
+  "ランプドラゴン",
+  "フェイスドラゴン",
+  "ミッドレンジナイトメア",
+  "アグロナイトメア",
+  "アミュレットビショップ",
+  "進化ビショップ",
+  "クキシロビショップ",
+  "AFネメシス",
+  "ハイランダーネメシス",
+  "OTKネメシス",
+] as const;
+
+export function sortDecks(decks: string[]): string[] {
+  const orderedIndex = new Map<string, number>(ORDERED_DECKS.map((name, index) => [name, index]));
+  return [...decks].sort((a, b) => {
+    const aIdx = orderedIndex.get(a);
+    const bIdx = orderedIndex.get(b);
+    if (aIdx !== undefined && bIdx !== undefined) return aIdx - bIdx;
+    if (aIdx !== undefined) return -1;
+    if (bIdx !== undefined) return 1;
+    return a.localeCompare(b, "ja");
+  });
+}
+
+export function getDecks(records: MatchRecord[]): string[] {
+  const existing = Array.from(new Set(records.flatMap((record) => [record.myDeck, record.opponentDeck])));
+  return sortDecks(existing);
+}
+
+export function getMatrixDecks(records: MatchRecord[]): string[] {
+  const existing = records.flatMap((record) => [record.myDeck, record.opponentDeck]);
+  const extraDecks = Array.from(new Set(existing)).filter((deck) => !ORDERED_DECKS.includes(deck as any)).sort((a, b) => a.localeCompare(b, "ja"));
+  return [...ORDERED_DECKS, ...extraDecks];
 }
 
 export function calculateMatchup(records: MatchRecord[], myDeck: string, opponentDeck: string): MatchupStats {
