@@ -2,6 +2,16 @@ import type { MatchRecord, MatchupStats } from "@/types/match";
 
 export const winRate = (wins: number, total: number) => (total === 0 ? 0 : (wins / total) * 100);
 
+export const CLASS_ORDER = [
+  "エルフ",
+  "ロイヤル",
+  "ウィッチ",
+  "ドラゴン",
+  "ナイトメア",
+  "ビショップ",
+  "ネメシス",
+] as const;
+
 export const ORDERED_DECKS = [
   "テンポエルフ",
   "進化エルフ",
@@ -22,9 +32,24 @@ export const ORDERED_DECKS = [
   "OTKネメシス",
 ] as const;
 
+export function getDeckClassIndex(name: string): number {
+  const trimmed = name.trim();
+  for (let i = 0; i < CLASS_ORDER.length; i++) {
+    if (trimmed.endsWith(CLASS_ORDER[i])) return i;
+  }
+  for (let i = 0; i < CLASS_ORDER.length; i++) {
+    if (trimmed.includes(CLASS_ORDER[i])) return i;
+  }
+  return 999;
+}
+
 export function sortDecks(decks: string[]): string[] {
   const orderedIndex = new Map<string, number>(ORDERED_DECKS.map((name, index) => [name, index]));
   return [...decks].sort((a, b) => {
+    const classA = getDeckClassIndex(a);
+    const classB = getDeckClassIndex(b);
+    if (classA !== classB) return classA - classB;
+
     const aIdx = orderedIndex.get(a);
     const bIdx = orderedIndex.get(b);
     if (aIdx !== undefined && bIdx !== undefined) return aIdx - bIdx;
@@ -40,8 +65,8 @@ export function getDecks(records: MatchRecord[]): string[] {
 }
 
 export function getMatrixDecks(records: MatchRecord[]): string[] {
-  const existing = Array.from(new Set(records.flatMap((record) => [record.myDeck, record.opponentDeck])));
-  return sortDecks(existing);
+  const myDecks = Array.from(new Set(records.map((record) => record.myDeck).filter(Boolean)));
+  return sortDecks(myDecks);
 }
 
 export function calculateMatchup(records: MatchRecord[], myDeck: string, opponentDeck: string): MatchupStats {

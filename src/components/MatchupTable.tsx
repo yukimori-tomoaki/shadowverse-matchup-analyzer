@@ -15,15 +15,28 @@ export function MatchupTable({ records, decks, onSelect }: { records: MatchRecor
     try {
       setDownloading(true);
       const scrollEl = panelRef.current.querySelector(".matrix-scroll") as HTMLElement | null;
+      const tableEl = panelRef.current.querySelector(".matrix") as HTMLElement | null;
+
       const originalOverflow = scrollEl ? scrollEl.style.overflow : "";
+      const originalPanelWidth = panelRef.current.style.width;
+      const originalPanelMaxWidth = panelRef.current.style.maxWidth;
+
+      const tableWidth = tableEl ? tableEl.scrollWidth : 0;
+      const requiredWidth = Math.max(tableWidth + 60, panelRef.current.scrollWidth, 1000);
+
       if (scrollEl) {
         scrollEl.style.overflow = "visible";
       }
+      panelRef.current.style.width = `${requiredWidth}px`;
+      panelRef.current.style.maxWidth = "none";
+
+      await new Promise((resolve) => setTimeout(resolve, 80));
 
       const dataUrl = await toPng(panelRef.current, {
         backgroundColor: "#0c1827",
         pixelRatio: 2,
         cacheBust: true,
+        width: requiredWidth,
         filter: (node) => {
           if (node instanceof HTMLElement && node.classList.contains("no-export")) {
             return false;
@@ -35,6 +48,8 @@ export function MatchupTable({ records, decks, onSelect }: { records: MatchRecor
       if (scrollEl) {
         scrollEl.style.overflow = originalOverflow;
       }
+      panelRef.current.style.width = originalPanelWidth;
+      panelRef.current.style.maxWidth = originalPanelMaxWidth;
 
       const link = document.createElement("a");
       const dateStr = new Date().toISOString().slice(0, 10);
