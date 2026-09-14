@@ -40,9 +40,8 @@ export function getDecks(records: MatchRecord[]): string[] {
 }
 
 export function getMatrixDecks(records: MatchRecord[]): string[] {
-  const existing = records.flatMap((record) => [record.myDeck, record.opponentDeck]);
-  const extraDecks = Array.from(new Set(existing)).filter((deck) => !ORDERED_DECKS.includes(deck as any)).sort((a, b) => a.localeCompare(b, "ja"));
-  return [...ORDERED_DECKS, ...extraDecks];
+  const existing = Array.from(new Set(records.flatMap((record) => [record.myDeck, record.opponentDeck])));
+  return sortDecks(existing);
 }
 
 export function calculateMatchup(records: MatchRecord[], myDeck: string, opponentDeck: string): MatchupStats {
