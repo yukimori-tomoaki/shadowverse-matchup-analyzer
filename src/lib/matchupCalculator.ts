@@ -1,36 +1,12 @@
 import type { MatchRecord, MatchupStats } from "@/types/match";
+import { CLASS_ORDER, ORDERED_DECKS } from "@/constants/decks";
+
+// デッキ・クラス定数は src/constants/decks.ts で一元管理しています。
+// デッキの追加・編集・削除はそちらのファイルのみ変更してください。
+// 後方互換のためここから再エクスポートしています。
+export { CLASS_ORDER, ORDERED_DECKS };
 
 export const winRate = (wins: number, total: number) => (total === 0 ? 0 : (wins / total) * 100);
-
-export const CLASS_ORDER = [
-  "エルフ",
-  "ロイヤル",
-  "ウィッチ",
-  "ドラゴン",
-  "ナイトメア",
-  "ビショップ",
-  "ネメシス",
-] as const;
-
-export const ORDERED_DECKS = [
-  "テンポエルフ",
-  "進化エルフ",
-  "連携ロイヤル",
-  "海賊ロイヤル",
-  "魔手ウィッチ",
-  "スペルウィッチ",
-  "セフィーウィッチ",
-  "ランプドラゴン",
-  "フェイスドラゴン",
-  "ミッドレンジナイトメア",
-  "アグロナイトメア",
-  "アミュレットビショップ",
-  "進化ビショップ",
-  "クキシロビショップ",
-  "AFネメシス",
-  "ハイランダーネメシス",
-  "OTKネメシス",
-] as const;
 
 export function getDeckClassIndex(name: string): number {
   const trimmed = name.trim();
