@@ -3,7 +3,7 @@
 import { Download, Grid3X3 } from "lucide-react";
 import { useRef, useState } from "react";
 import html2canvas from "html2canvas";
-import { calculateMatchup, getMyDecks, getOpponentDecks, matchupTone } from "@/lib/matchupCalculator";
+import { calculateDeckTotalStats, calculateMatchup, getDecks, getMyDecks, getOpponentDecks, matchupTone } from "@/lib/matchupCalculator";
 import type { MatchRecord, MatchupStats } from "@/types/match";
 
 export function MatchupTable({
@@ -11,21 +11,23 @@ export function MatchupTable({
   decks,
   rowDecks,
   columnDecks,
+  turnFilter = "all",
   onSelect,
 }: {
   records: MatchRecord[];
   decks?: string[];
   rowDecks?: string[];
   columnDecks?: string[];
+  turnFilter?: string;
   onSelect: (stats: MatchupStats) => void;
 }) {
   const panelRef = useRef<HTMLElement>(null);
   const [downloading, setDownloading] = useState(false);
-const [showFull, setShowFull] = useState(false);
-  
+  const [showFull, setShowFull] = useState(false);
 
-  const myRowDecks = rowDecks ?? (decks && decks.length > 0 ? decks : getMyDecks(records));
-  const opponentColumnDecks = columnDecks ?? getOpponentDecks(records);
+  const allDecks = getDecks(records);
+  const myRowDecks = rowDecks ?? (decks && decks.length > 0 ? decks : allDecks);
+  const opponentColumnDecks = columnDecks ?? (decks && decks.length > 0 ? decks : allDecks);
 
   const handleDownloadPng = async () => {
     if (!panelRef.current || downloading) return;
@@ -122,21 +124,18 @@ const [showFull, setShowFull] = useState(false);
                   <th>
                       <div>{rowDeck}</div>
                       <div className="row-stats-text">{(() => {
-                        const own = records.filter((r) => r.myDeck === rowDeck);
-                        const total = own.length;
-                        const wins = own.filter((r) => r.result === "WIN").length;
-                        const losses = own.filter((r) => r.result === "LOSS").length;
+                        const stats = calculateDeckTotalStats(records, rowDeck, turnFilter);
                         return (
                           <>
-                            <span>{`W-${wins} L-${losses}`}</span>
-                            <span>{`match ${total}`}</span>
+                            <span>{`W-${stats.wins} L-${stats.losses}`}</span>
+                            <span>{`match ${stats.total}`}</span>
                           </>
                         );
                       })()}</div>
                     </th>
                   {opponentColumnDecks.map((columnDeck) => {
                     if (rowDeck === columnDeck) return <td className="diagonal" key={columnDeck}>—</td>;
-                    const stats = calculateMatchup(records, rowDeck, columnDeck);
+                    const stats = calculateMatchup(records, rowDeck, columnDeck, turnFilter);
                     if (stats.total === 0) return <td key={columnDeck} className="matrix-empty" />;
                     const tone = matchupTone(stats.winRate, stats.total);
                     return (
