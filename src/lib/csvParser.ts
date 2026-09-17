@@ -61,7 +61,7 @@ export function parseMatchCsv(text: string): CsvParseResult {
     }
 
     records.push({
-      id: `${recordedAt}-${format}-${myDeck}-${opponentDeck}-${row["手番"] ?? ""}-${result}-${index}`,
+      id: `${recordedAt}-${format}-${myDeck}-${opponentDeck}-${row["手番"] ?? ""}-${result}`,
       date: recordedAt,
       format,
       myDeck,
