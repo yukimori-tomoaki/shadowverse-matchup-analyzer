@@ -1,12 +1,28 @@
 import type { MatchRecord, MatchupStats } from "@/types/match";
-import { CLASS_ORDER, ORDERED_DECKS } from "@/constants/decks";
+import { CLASS_ORDER, DEFAULT_SHARE_PERIOD, ORDERED_DECKS } from "@/constants/decks";
 
 // デッキ・クラス定数は src/constants/decks.ts で一元管理しています。
 // デッキの追加・編集・削除はそちらのファイルのみ変更してください。
 // 後方互換のためここから再エクスポートしています。
-export { CLASS_ORDER, ORDERED_DECKS };
+export { CLASS_ORDER, DEFAULT_SHARE_PERIOD, ORDERED_DECKS };
 
 export const winRate = (wins: number, total: number) => (total === 0 ? 0 : (wins / total) * 100);
+
+export function getDeckClass(name: string): string | null {
+  const trimmed = name.trim();
+  for (let i = 0; i < CLASS_ORDER.length; i++) {
+    if (trimmed.endsWith(CLASS_ORDER[i])) return CLASS_ORDER[i];
+  }
+  for (let i = 0; i < CLASS_ORDER.length; i++) {
+    if (trimmed.includes(CLASS_ORDER[i])) return CLASS_ORDER[i];
+  }
+  return null;
+}
+
+export function isDeckInClass(deckName: string, className: string): boolean {
+  if (!className || className === "all") return true;
+  return getDeckClass(deckName) === className;
+}
 
 export function getDeckClassIndex(name: string): number {
   const trimmed = name.trim();

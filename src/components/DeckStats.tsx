@@ -2,9 +2,10 @@ import { Award, TrendingDown, TrendingUp } from "lucide-react";
 import { calculateDeckTotalStats, calculateMatchup, getDecks } from "@/lib/matchupCalculator";
 import type { MatchRecord } from "@/types/match";
 
-export function DeckStats({ records }: { records: MatchRecord[] }) {
+export function DeckStats({ records, decks }: { records: MatchRecord[]; decks?: string[] }) {
   const allDecks = getDecks(records);
-  const activeDecks = allDecks.filter((deck) =>
+  const targetDecks = decks && decks.length > 0 ? decks : allDecks;
+  const activeDecks = targetDecks.filter((deck) =>
     records.some((r) => r.myDeck === deck || r.opponentDeck === deck)
   );
 

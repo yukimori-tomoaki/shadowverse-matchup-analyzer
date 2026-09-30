@@ -18,6 +18,8 @@ export type MatchFilters = {
   endDate: string;
   myDeck: string;
   turn: "all" | "先攻" | "後攻";
+  selectedClass?: string;
+  excludeMirror?: boolean;
 };
 
 export type MatchupCell = {

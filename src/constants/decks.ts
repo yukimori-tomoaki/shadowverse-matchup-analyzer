@@ -1,13 +1,29 @@
+import type { MatchFilters } from "@/types/match";
+
 /**
  * デッキ・クラス定数
  *
  * ▼ デッキを追加・編集・削除したい場合はこのファイルだけ変更してください。
  *   他のファイルへの変更は一切不要です。
  *
- * CLASS_ORDER  … クラス名の表示順。ソートキーとして使用されます。
- * ORDERED_DECKS … デッキ名の表示順。上から順に相性表の行・列に並びます。
- *                 リストにないデッキ名はデータから自動検出され、末尾に追加されます。
+ * CLASS_ORDER         … クラス名の表示順。ソートキーとして使用されます。
+ * ORDERED_DECKS        … デッキ名の表示順。上から順に相性表の行・列に並びます。
+ *                        リストにないデッキ名はデータから自動検出され、末尾に追加されます。
+ * DEFAULT_SHARE_PERIOD … 公開ページ (/share) のデフォルト表示期間。
+ *                        "all" | "today" | "7days" | "30days" | "custom"
  */
+
+/**
+ * 公開ページ (/share) のデフォルト表示期間設定
+ * 変更可能な値:
+ *  - "all"    : 全期間
+ *  - "today"  : 今日
+ *  - "7days"  : 過去7日
+ *  - "30days" : 過去30日
+ *  - "custom" : 任意期間
+ */
+export const DEFAULT_SHARE_PERIOD: MatchFilters["period"] = "all";
+
 
 /** クラスの表示順（相性表のソートに使用） */
 export const CLASS_ORDER = [
