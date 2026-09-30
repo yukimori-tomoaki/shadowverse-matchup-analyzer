@@ -7,7 +7,7 @@ import { FilterPanel } from "@/components/FilterPanel";
 import { MatchupDetail } from "@/components/MatchupDetail";
 import { MatchupTable } from "@/components/MatchupTable";
 import { DEFAULT_SHARE_PERIOD } from "@/constants/decks";
-import { filterPeriod, getDecks, isDeckInClass } from "@/lib/matchupCalculator";
+import { filterPeriod, getDecks } from "@/lib/matchupCalculator";
 import { loadPublicBoard } from "@/lib/publicBoard";
 import { supabase } from "@/lib/supabase";
 import type { MatchFilters, MatchRecord, MatchupStats } from "@/types/match";
@@ -18,8 +18,6 @@ const initialShareFilters: MatchFilters = {
   endDate: "",
   myDeck: "",
   turn: "all",
-  selectedClass: "all",
-  excludeMirror: false,
 };
 
 export default function PublicBoardPage() {
@@ -52,23 +50,22 @@ export default function PublicBoardPage() {
     };
   }, []);
 
-  // 1. 期間フィルター & 同デッキ対戦（ミラーマッチ）除外
+  // 1. 期間フィルター & 同デッキ対戦（ミラーマッチ）の常時除外
   const displayRecords = useMemo(() => {
     const inPeriod = filterPeriod(records, filters.period, filters.startDate, filters.endDate);
-    if (!filters.excludeMirror) return inPeriod;
     return inPeriod.filter((r) => r.myDeck !== r.opponentDeck);
-  }, [records, filters.period, filters.startDate, filters.endDate, filters.excludeMirror]);
+  }, [records, filters.period, filters.startDate, filters.endDate]);
 
-  // 期間内・除外後の全デッキ一覧（相手列デッキに使用）
+  // 期間内・ミラー除外後の全デッキ一覧（相手列デッキに使用）
   const periodDecks = useMemo(() => getDecks(displayRecords), [displayRecords]);
 
-  // 表示対象の行デッキ（クラスフィルター適用）
+  // 表示対象の行デッキ（使用デッキフィルター適用）
   const rowDecks = useMemo(() => {
-    if (!filters.selectedClass || filters.selectedClass === "all") {
+    if (!filters.myDeck) {
       return periodDecks;
     }
-    return periodDecks.filter((deck) => isDeckInClass(deck, filters.selectedClass!));
-  }, [periodDecks, filters.selectedClass]);
+    return periodDecks.filter((deck) => deck === filters.myDeck);
+  }, [periodDecks, filters.myDeck]);
 
   const columnDecks = periodDecks;
 
@@ -121,10 +118,12 @@ export default function PublicBoardPage() {
           <>
             <FilterPanel
               filters={filters}
-              showClass
-              showExcludeMirror
-              showDeck={false}
+              decks={periodDecks}
+              deckLabel="使用デッキ"
+              showClass={false}
+              showDeck={true}
               showTurn={false}
+              showExcludeMirror={false}
               onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
             />
 

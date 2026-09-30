@@ -81,4 +81,15 @@ button { cursor: pointer; }
   color: var(--muted);
   text-align: center;
   margin-top: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  line-height: 1.25;
 }
+.row-stats-text > div,
+.row-stats-text > span {
+  display: block;
+  white-space: nowrap;
+}
+

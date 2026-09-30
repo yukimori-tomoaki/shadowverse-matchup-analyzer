@@ -127,8 +127,8 @@ export function MatchupTable({
                         const stats = calculateDeckTotalStats(records, rowDeck, turnFilter);
                         return (
                           <>
-                            <span>{`W-${stats.wins} L-${stats.losses}`}</span>
-                            <span>{`match ${stats.total}`}</span>
+                            <div className="row-record">{`W-${stats.wins} L-${stats.losses}`}</div>
+                            <div className="row-matches">{`match ${stats.total}`}</div>
                           </>
                         );
                       })()}</div>

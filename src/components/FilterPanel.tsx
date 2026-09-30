@@ -5,6 +5,7 @@ import { CLASS_ORDER } from "@/constants/decks";
 export type FilterPanelProps = {
   filters: MatchFilters;
   decks?: string[];
+  deckLabel?: string;
   classes?: readonly string[];
   showPeriod?: boolean;
   showClass?: boolean;
@@ -17,6 +18,7 @@ export type FilterPanelProps = {
 export function FilterPanel({
   filters,
   decks = [],
+  deckLabel = "自分デッキ",
   classes = CLASS_ORDER,
   showPeriod = true,
   showClass = false,
@@ -88,7 +90,7 @@ export function FilterPanel({
         )}
         {showDeck && (
           <label>
-            自分デッキ
+            {deckLabel}
             <select
               value={filters.myDeck}
               onChange={(e) => onChange({ myDeck: e.target.value })}
