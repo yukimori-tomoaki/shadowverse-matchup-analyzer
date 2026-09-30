@@ -1,6 +1,7 @@
 import { CalendarDays, Filter } from "lucide-react";
 import type { MatchFilters } from "@/types/match";
 import { CLASS_ORDER } from "@/constants/decks";
+import { MultiSelectDropdown } from "@/components/MultiSelectDropdown";
 
 export type FilterPanelProps = {
   filters: MatchFilters;
@@ -10,6 +11,7 @@ export type FilterPanelProps = {
   showPeriod?: boolean;
   showClass?: boolean;
   showDeck?: boolean;
+  showMultiDeck?: boolean;
   showTurn?: boolean;
   showExcludeMirror?: boolean;
   onChange: (next: Partial<MatchFilters>) => void;
@@ -23,6 +25,7 @@ export function FilterPanel({
   showPeriod = true,
   showClass = false,
   showDeck = true,
+  showMultiDeck = false,
   showTurn = true,
   showExcludeMirror = false,
   onChange,
@@ -87,6 +90,14 @@ export function FilterPanel({
               ))}
             </select>
           </label>
+        )}
+        {showMultiDeck && (
+          <MultiSelectDropdown
+            label={deckLabel}
+            items={decks}
+            selectedItems={filters.selectedDecks}
+            onChange={(selected) => onChange({ selectedDecks: selected })}
+          />
         )}
         {showDeck && (
           <label>

@@ -59,13 +59,13 @@ export default function PublicBoardPage() {
   // 期間内・ミラー除外後の全デッキ一覧（相手列デッキに使用）
   const periodDecks = useMemo(() => getDecks(displayRecords), [displayRecords]);
 
-  // 表示対象の行デッキ（使用デッキフィルター適用）
+  // 表示対象の行デッキ（使用デッキ複数選択フィルター適用）
   const rowDecks = useMemo(() => {
-    if (!filters.myDeck) {
+    if (filters.selectedDecks === undefined) {
       return periodDecks;
     }
-    return periodDecks.filter((deck) => deck === filters.myDeck);
-  }, [periodDecks, filters.myDeck]);
+    return periodDecks.filter((deck) => filters.selectedDecks!.includes(deck));
+  }, [periodDecks, filters.selectedDecks]);
 
   const columnDecks = periodDecks;
 
@@ -121,7 +121,8 @@ export default function PublicBoardPage() {
               decks={periodDecks}
               deckLabel="使用デッキ"
               showClass={false}
-              showDeck={true}
+              showDeck={false}
+              showMultiDeck={true}
               showTurn={false}
               showExcludeMirror={false}
               onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
@@ -140,7 +141,9 @@ export default function PublicBoardPage() {
             ) : (
               <div className="panel" style={{ textAlign: "center", padding: "48px 20px", color: "var(--muted)" }}>
                 <p style={{ margin: 0, fontSize: "14px" }}>
-                  指定された条件に一致する対戦データがありません。表示条件を変更してください。
+                  {filters.selectedDecks !== undefined && filters.selectedDecks.length === 0
+                    ? "使用デッキが選択されていません。「使用デッキ」フィルターから1つ以上のデッキを選択してください。"
+                    : "指定された条件に一致する対戦データがありません。表示条件を変更してください。"}
                 </p>
               </div>
             )}

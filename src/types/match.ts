@@ -19,6 +19,7 @@ export type MatchFilters = {
   myDeck: string;
   turn: "all" | "先攻" | "後攻";
   selectedClass?: string;
+  selectedDecks?: string[];
   excludeMirror?: boolean;
 };
 
