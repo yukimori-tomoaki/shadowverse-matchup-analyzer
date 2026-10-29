@@ -233,6 +233,21 @@ export function filterPeriod(
   });
 }
 
+export function filterByEnvironment(
+  records: MatchRecord[],
+  environment?: { startDate: string; endDate: string | null } | null | "all"
+): MatchRecord[] {
+  if (!environment || environment === "all") return records;
+  const start = environment.startDate;
+  const end = environment.endDate;
+  return records.filter((record) => {
+    const matchDate = record.date.slice(0, 10);
+    if (start && matchDate < start) return false;
+    if (end && matchDate > end) return false;
+    return true;
+  });
+}
+
 export function filterMatches(
   records: MatchRecord[],
   period: string,
@@ -249,3 +264,4 @@ export function filterMatches(
     );
   });
 }
+
