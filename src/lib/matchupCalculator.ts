@@ -265,3 +265,115 @@ export function filterMatches(
   });
 }
 
+/**
+ * 最大連勝数を計算
+ */
+export function calculateMaxStreak(records: MatchRecord[]): number {
+  if (records.length === 0) return 0;
+  // 日付順にソート（昇順）
+  const sorted = [...records].sort((a, b) => a.date.localeCompare(b.date));
+  let maxStreak = 0;
+  let currentStreak = 0;
+
+  for (const record of sorted) {
+    if (record.result === "WIN") {
+      currentStreak += 1;
+      if (currentStreak > maxStreak) {
+        maxStreak = currentStreak;
+      }
+    } else {
+      currentStreak = 0;
+    }
+  }
+
+  return maxStreak;
+}
+
+export type DeckUsageStat = {
+  deckName: string;
+  total: number;
+  wins: number;
+  losses: number;
+  winRate: number;
+  rank: number;
+};
+
+/**
+ * 自分が使用したデッキごとの使用回数・勝率を計算
+ */
+export function calculateDeckUsageStats(records: MatchRecord[]): DeckUsageStat[] {
+  const map = new Map<string, { total: number; wins: number; losses: number }>();
+
+  for (const r of records) {
+    if (!r.myDeck) continue;
+    const current = map.get(r.myDeck) ?? { total: 0, wins: 0, losses: 0 };
+    current.total += 1;
+    if (r.result === "WIN") current.wins += 1;
+    else current.losses += 1;
+    map.set(r.myDeck, current);
+  }
+
+  const list = Array.from(map.entries()).map(([deckName, stat]) => ({
+    deckName,
+    total: stat.total,
+    wins: stat.wins,
+    losses: stat.losses,
+    winRate: stat.total > 0 ? (stat.wins / stat.total) * 100 : 0,
+    rank: 1,
+  }));
+
+  // 使用数降順、同じなら勝率降順
+  list.sort((a, b) => b.total - a.total || b.winRate - a.winRate);
+
+  let currentRank = 1;
+  for (let i = 0; i < list.length; i++) {
+    if (i > 0 && list[i].total < list[i - 1].total) {
+      currentRank = i + 1;
+    }
+    list[i].rank = currentRank;
+  }
+
+  return list;
+}
+
+export type OpponentShareStat = {
+  deckName: string;
+  total: number;
+  sharePercent: number;
+  rank: number;
+};
+
+/**
+ * 対戦相手デッキの環境シェア率を計算
+ */
+export function calculateOpponentShare(records: MatchRecord[]): OpponentShareStat[] {
+  const totalMatches = records.length;
+  if (totalMatches === 0) return [];
+
+  const map = new Map<string, number>();
+  for (const r of records) {
+    if (!r.opponentDeck) continue;
+    map.set(r.opponentDeck, (map.get(r.opponentDeck) ?? 0) + 1);
+  }
+
+  const list = Array.from(map.entries()).map(([deckName, count]) => ({
+    deckName,
+    total: count,
+    sharePercent: (count / totalMatches) * 100,
+    rank: 1,
+  }));
+
+  list.sort((a, b) => b.total - a.total);
+
+  let currentRank = 1;
+  for (let i = 0; i < list.length; i++) {
+    if (i > 0 && list[i].total < list[i - 1].total) {
+      currentRank = i + 1;
+    }
+    list[i].rank = currentRank;
+  }
+
+  return list;
+}
+
+

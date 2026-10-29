@@ -1414,3 +1414,804 @@ footer button { display: flex; align-items: center; gap: 5px; border: 0; color: 
 .animate-pulse-glow {
   animation: pulseGlow 2.5s infinite ease-in-out;
 }
+
+/* ========================================================
+   Table Highlight & Stabilization
+======================================================== */
+.selected-deck-row {
+  background: rgba(14, 165, 233, 0.08) !important;
+  box-shadow: inset 0 0 0 2px var(--cyan);
+}
+.highlighted-row-header {
+  background: var(--panel) !important;
+  border-left: 4px solid var(--cyan) !important;
+}
+.highlighted-col-header {
+  background: var(--panel) !important;
+  border-top: 4px solid var(--cyan) !important;
+}
+
+/* ========================================================
+   Top Navigation Tabs (Segmented Control: 相性 vs データ分析)
+======================================================== */
+.main-view-segmented-tabs {
+  display: flex;
+  align-items: center;
+  background: var(--panel-2);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--line);
+  margin-bottom: 20px;
+  gap: 4px;
+  max-width: 480px;
+  width: 100%;
+}
+.main-view-tab-btn {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--muted);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+.main-view-tab-btn:hover {
+  color: var(--text);
+  background: rgba(255, 255, 255, 0.05);
+}
+.main-view-tab-btn.active {
+  background: var(--cyan);
+  color: #03111e;
+  box-shadow: 0 2px 10px rgba(14, 165, 233, 0.35);
+}
+
+/* ========================================================
+   Data Analysis View (Mockup 1 Style)
+======================================================== */
+.data-analysis-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  margin-bottom: 24px;
+}
+.stats-report-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.report-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 14px;
+}
+.report-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.report-icon-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(249, 115, 22, 0.15);
+  color: #f97316;
+}
+.report-title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+.report-env-badge {
+  background: rgba(14, 165, 233, 0.12);
+  border: 1px solid rgba(14, 165, 233, 0.3);
+  padding: 4px 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--cyan);
+}
+
+/* 最多使用デッキ カード */
+.top-deck-hero-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel-2);
+  border: 1.5px solid #eab308;
+  border-radius: 14px;
+  padding: 16px 20px;
+  gap: 14px;
+  box-shadow: 0 4px 16px rgba(234, 179, 8, 0.08);
+}
+.top-deck-badge-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: rgba(234, 179, 8, 0.15);
+  border-radius: 12px;
+  flex-shrink: 0;
+}
+.top-deck-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+.top-deck-kicker {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.top-deck-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.top-deck-name {
+  font-size: 19px;
+  font-weight: 800;
+  margin: 0;
+}
+.top-deck-sub {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0;
+}
+.top-deck-rate-box {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  text-align: right;
+}
+.rate-label {
+  font-size: 10px;
+  color: var(--muted);
+}
+.rate-value-group {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.rate-num {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  font-family: 'Barlow Condensed', sans-serif;
+  color: var(--text);
+}
+.rate-percent {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--muted);
+}
+
+/* 3連サマリーカード */
+.report-summary-triad {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr;
+  gap: 10px;
+}
+@media (max-width: 520px) {
+  .report-summary-triad {
+    grid-template-columns: 1fr;
+  }
+}
+.triad-card {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-align: center;
+  align-items: center;
+  justify-content: center;
+}
+.triad-label {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.triad-val {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 4px;
+  font-size: 14px;
+}
+.triad-val strong {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'Barlow Condensed', sans-serif;
+  color: var(--text);
+}
+.triad-sep {
+  color: var(--line);
+  margin: 0 4px;
+}
+.triad-win {
+  color: #10b981 !important;
+}
+.triad-loss {
+  color: #f43f5e !important;
+}
+.triad-highlight-cyan strong {
+  color: var(--cyan);
+  font-size: 26px;
+}
+.triad-highlight-pink {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.triad-highlight-pink strong {
+  color: #ec4899;
+  font-size: 26px;
+}
+
+/* 他の使用デッキ セクション */
+.other-decks-section, .env-share-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.section-label-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.section-bar-line {
+  width: 4px;
+  height: 14px;
+  border-radius: 2px;
+  background: var(--cyan);
+}
+.section-label-bar h4 {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+.other-decks-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+@media (max-width: 480px) {
+  .other-decks-grid {
+    grid-template-columns: 1fr;
+  }
+}
+.other-deck-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-left-width: 4px;
+  border-radius: 10px;
+  padding: 10px 14px;
+}
+.other-deck-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.other-deck-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.rank-num {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 600;
+}
+.other-deck-name {
+  font-size: 14px;
+  font-weight: 700;
+}
+.other-deck-sub {
+  font-size: 11px;
+  color: var(--muted);
+}
+.other-deck-rate {
+  display: flex;
+  align-items: baseline;
+  gap: 1px;
+}
+.other-deck-rate strong {
+  font-size: 22px;
+  font-weight: 800;
+  font-family: 'Barlow Condensed', sans-serif;
+  color: var(--text);
+}
+.other-deck-rate span {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* 環境シェア Top 3 */
+.env-share-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.env-share-item {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  background: var(--panel-2);
+  padding: 10px 14px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.env-share-info-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.share-deck-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}
+.rank-badge {
+  font-size: 11px;
+  color: var(--muted);
+}
+.share-percent-text {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.share-percent-text strong {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text);
+}
+.share-percent-text span {
+  font-size: 11px;
+  color: var(--muted);
+}
+.share-bar-track {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+.share-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.4s ease;
+}
+
+/* 画像ダウンロードボタン */
+.download-btn-container {
+  display: flex;
+  justify-content: center;
+}
+.download-report-btn {
+  width: 100%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 13px 20px;
+  border-radius: 12px;
+  font-size: 14px;
+  font-weight: 700;
+  background: var(--panel-2);
+  color: var(--text);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-height: 44px;
+}
+.download-report-btn:hover {
+  background: var(--card-hover);
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+/* ========================================================
+   Matchup Analytics View (Mockup 2 Style)
+======================================================== */
+.matchup-analytics-view {
+  margin-bottom: 24px;
+}
+.matchup-data-card {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.card-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.header-title-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.icon-wrap-purple {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: rgba(168, 85, 247, 0.15);
+  color: #c084fc;
+}
+.card-heading-text {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+
+/* デッキセレクター */
+.deck-selector-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.selector-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.selector-input-wrap {
+  position: relative;
+  flex: 1;
+}
+.deck-select-dropdown {
+  width: 100%;
+  appearance: none;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  color: var(--text);
+  padding: 10px 36px 10px 14px;
+  border-radius: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  outline: none;
+  transition: border-color 0.15s;
+  min-height: 44px;
+}
+.deck-select-dropdown:focus {
+  border-color: var(--cyan);
+}
+.dropdown-arrow-icon {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--muted);
+  pointer-events: none;
+}
+
+/* 期間ピルボタングループ */
+.period-pill-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.period-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.pills-track {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.pill-btn {
+  padding: 7px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--panel-2);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 36px;
+}
+.pill-btn:hover {
+  color: var(--text);
+  border-color: var(--line-strong);
+}
+.pill-btn.active {
+  background: var(--cyan);
+  color: #03111e;
+  border-color: var(--cyan);
+}
+
+/* 期間の戦績バナー */
+.period-record-banner {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.banner-label {
+  font-size: 12px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.banner-nums {
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+}
+.banner-nums strong {
+  font-size: 20px;
+  font-family: 'Barlow Condensed', sans-serif;
+}
+.banner-nums small {
+  font-size: 11px;
+  color: var(--muted);
+}
+.banner-sep {
+  color: var(--line);
+  margin: 0 4px;
+}
+.num-win {
+  color: #10b981;
+}
+.num-loss {
+  color: #f43f5e;
+}
+
+/* 勝率カード3連 */
+.winrate-triad-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+.winrate-card {
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 4px;
+}
+.winrate-title {
+  font-size: 11px;
+  color: var(--muted);
+  font-weight: 500;
+}
+.winrate-value {
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+.winrate-value strong {
+  font-size: 26px;
+  font-weight: 800;
+  font-family: 'Barlow Condensed', sans-serif;
+}
+.winrate-value span {
+  font-size: 13px;
+  font-weight: 700;
+}
+.winrate-cyan strong {
+  color: var(--cyan);
+}
+.winrate-teal strong {
+  color: #10b981;
+}
+.winrate-pink strong {
+  color: #f43f5e;
+}
+.winrate-count {
+  font-size: 11px;
+  color: var(--muted);
+}
+
+/* ドーナツチャート セクション */
+.donut-chart-section {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 0;
+}
+.chart-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0;
+  align-self: flex-start;
+}
+.donut-center-container {
+  position: relative;
+  width: 170px;
+  height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.donut-svg {
+  width: 100%;
+  height: 100%;
+  transform: rotate(-90deg);
+}
+.donut-center-text {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+.center-count {
+  font-size: 32px;
+  font-weight: 800;
+  line-height: 1;
+  font-family: 'Barlow Condensed', sans-serif;
+  color: var(--text);
+}
+.center-sub {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--muted);
+  letter-spacing: 0.05em;
+}
+.donut-legend-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 8px 12px;
+  width: 100%;
+}
+.donut-legend-tag {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 11px;
+  color: var(--text);
+  background: var(--panel-2);
+  padding: 4px 8px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+}
+.legend-color-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-deck-name {
+  font-weight: 600;
+}
+.legend-deck-pct {
+  color: var(--muted);
+}
+
+/* 得意対面・苦手対面 */
+.favored-matchups-section, .unfavorable-matchups-section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.matchup-sub-header {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.matchup-sub-header h4 {
+  font-size: 13px;
+  font-weight: 700;
+  margin: 0;
+  color: var(--text);
+}
+.matchup-quick-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.quick-matchup-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 10px 14px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-height: 44px;
+}
+.quick-matchup-item:hover {
+  border-color: var(--cyan);
+  background: var(--card-hover);
+}
+.quick-item-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.quick-rank-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+.rank-high {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+}
+.rank-low {
+  background: rgba(244, 63, 94, 0.2);
+  color: #f43f5e;
+}
+.quick-deck-name {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.quick-item-right {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1px;
+}
+.quick-rate {
+  font-size: 16px;
+  font-weight: 800;
+  font-family: 'Barlow Condensed', sans-serif;
+}
+.win-rate-high {
+  color: #10b981;
+}
+.win-rate-low {
+  color: #f43f5e;
+}
+.quick-stats-count {
+  font-size: 10px;
+  color: var(--muted);
+}
