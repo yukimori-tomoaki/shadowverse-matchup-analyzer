@@ -1,6 +1,7 @@
 import { Award, TrendingDown, TrendingUp } from "lucide-react";
 import { calculateDeckTotalStats, calculateMatchup, getDecks } from "@/lib/matchupCalculator";
 import type { MatchRecord } from "@/types/match";
+import { ClassIcon } from "@/components/ClassIcon";
 
 export function DeckStats({ records, decks }: { records: MatchRecord[]; decks?: string[] }) {
   const allDecks = getDecks(records);
@@ -36,7 +37,10 @@ export function DeckStats({ records, decks }: { records: MatchRecord[]; decks?: 
           return (
             <article className="deck-stat" key={deck}>
               <div className="deck-stat-name">
-                <span>{deck}</span>
+                <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                  <ClassIcon deckName={deck} size={22} showBadge />
+                  <span>{deck}</span>
+                </div>
                 <b>{stats.total}戦</b>
               </div>
               <div className="deck-stat-rate">{stats.winRate.toFixed(1)}%</div>

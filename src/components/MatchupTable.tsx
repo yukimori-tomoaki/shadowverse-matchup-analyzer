@@ -1,10 +1,18 @@
 "use client";
 
-import { Download, Grid3X3 } from "lucide-react";
+import { ArrowLeftRight, Download, Grid3X3 } from "lucide-react";
 import { useRef, useState } from "react";
 import html2canvas from "html2canvas";
-import { calculateDeckTotalStats, calculateMatchup, getDecks, getMyDecks, getOpponentDecks, matchupTone } from "@/lib/matchupCalculator";
+import {
+  calculateDeckTotalStats,
+  calculateMatchup,
+  getDecks,
+  matchupTone,
+} from "@/lib/matchupCalculator";
 import type { MatchRecord, MatchupStats } from "@/types/match";
+import type { ClassKey } from "@/types/classIcon";
+import { getDeckClassKey } from "@/constants/classIcons";
+import { ClassIcon } from "@/components/ClassIcon";
 
 export function MatchupTable({
   records,
@@ -12,14 +20,20 @@ export function MatchupTable({
   rowDecks,
   columnDecks,
   turnFilter = "all",
+  classIcons,
+  selectedDeck,
   onSelect,
+  onSelectDeck,
 }: {
   records: MatchRecord[];
   decks?: string[];
   rowDecks?: string[];
   columnDecks?: string[];
   turnFilter?: string;
+  classIcons?: Record<ClassKey, string>;
+  selectedDeck?: string;
   onSelect: (stats: MatchupStats) => void;
+  onSelectDeck?: (deck: string) => void;
 }) {
   const panelRef = useRef<HTMLElement>(null);
   const [downloading, setDownloading] = useState(false);
@@ -55,7 +69,8 @@ export function MatchupTable({
         backgroundColor: "#0c1827",
         scale: 2,
         width: requiredWidth,
-        ignoreElements: (element) => element instanceof HTMLElement && element.classList.contains("no-export"),
+        ignoreElements: (element) =>
+          element instanceof HTMLElement && element.classList.contains("no-export"),
       });
       const dataUrl = canvas.toDataURL();
 
@@ -82,17 +97,27 @@ export function MatchupTable({
     <section className="panel matchup-panel" ref={panelRef}>
       <div className="section-heading">
         <div>
-          <span className="eyebrow"><Grid3X3 size={14} /> MATCHUP MATRIX</span>
+          <span className="eyebrow">
+            <Grid3X3 size={14} /> MATCHUP MATRIX
+          </span>
           <h2>デッキ別相性表</h2>
         </div>
-        <div className="heading-actions" style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+        <div
+          className="heading-actions"
+          style={{ display: "flex", alignItems: "center", gap: "10px" }}
+        >
           <span className="muted no-export">セルを選択して詳細を表示</span>
           <button
             type="button"
             className="button button-ghost no-export"
             onClick={() => void handleDownloadPng()}
             disabled={downloading}
-            style={{ display: "inline-flex", alignItems: "center", gap: "6px", cursor: downloading ? "wait" : "pointer" }}
+            style={{
+              display: "inline-flex",
+              alignItems: "center",
+              gap: "6px",
+              cursor: downloading ? "wait" : "pointer",
+            }}
             title="相性表をPNG画像としてダウンロード"
           >
             <Download size={14} />
@@ -101,7 +126,7 @@ export function MatchupTable({
           <button
             type="button"
             className="button button-ghost no-export"
-            onClick={() => setShowFull(prev => !prev)}
+            onClick={() => setShowFull((prev) => !prev)}
             style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}
             title="スクロールモードと全画面モードを切り替え"
           >
@@ -109,60 +134,148 @@ export function MatchupTable({
           </button>
         </div>
       </div>
+
       <div className={"matrix-scroll " + (showFull ? "matrix-full" : "")}>
         <table className="matrix">
           <thead>
             <tr>
-              <th>自分＼相手</th>
-              {opponentColumnDecks.map((deck) => <th key={deck}>{deck}</th>)}
+              <th className="corner-th">
+                <div className="corner-axis">
+                  <span className="axis-y">自分 ↓</span>
+                  <span className="axis-slash">/</span>
+                  <span className="axis-x">相手 →</span>
+                </div>
+              </th>
+              {opponentColumnDecks.map((deck) => {
+                const key = getDeckClassKey(deck);
+                return (
+                  <th key={deck} className="col-header-th">
+                    <div className="col-deck-cell">
+                      <ClassIcon
+                        deckName={deck}
+                        customUrl={key && classIcons ? classIcons[key] : undefined}
+                        size={20}
+                        showBadge
+                      />
+                      <span className="col-deck-name">{deck}</span>
+                    </div>
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
-            {myRowDecks.map((rowDeck) => (
-              
+            {myRowDecks.map((rowDeck) => {
+              const rowKey = getDeckClassKey(rowDeck);
+              return (
                 <tr key={rowDeck}>
-                  <th>
-                      <div>{rowDeck}</div>
-                      <div className="row-stats-text">{(() => {
-                        const stats = calculateDeckTotalStats(records, rowDeck, turnFilter);
-                        return (
-                          <>
-                            <div className="row-record">{`W-${stats.wins} L-${stats.losses}`}</div>
-                            <div className="row-matches">{`match ${stats.total}`}</div>
-                          </>
-                        );
-                      })()}</div>
-                    </th>
-                  {opponentColumnDecks.map((columnDeck) => {
-                    if (rowDeck === columnDeck) return <td className="diagonal" key={columnDeck}>—</td>;
-                    const stats = calculateMatchup(records, rowDeck, columnDeck, turnFilter);
-                    if (stats.total === 0) return <td key={columnDeck} className="matrix-empty" />;
-                    const tone = matchupTone(stats.winRate, stats.total);
+                  <th className="row-header-th">
+                    <div className="row-deck-cell">
+                      <ClassIcon
+                        deckName={rowDeck}
+                        customUrl={rowKey && classIcons ? classIcons[rowKey] : undefined}
+                        size={22}
+                        showBadge
+                      />
+                      <div className="row-deck-info">
+                        <div className="row-deck-name">{rowDeck}</div>
+                      <div className="row-stats-text">
+                        {(() => {
+                          const stats = calculateDeckTotalStats(records, rowDeck, turnFilter);
+                          return (
+                            <>
+                              <div className="row-record">{`W-${stats.wins} L-${stats.losses}`}</div>
+                              <div className="row-matches">{`match ${stats.total}`}</div>
+                            </>
+                          );
+                        })()}
+                      </div>
+                    </div>
+                  </div>
+                </th>
+                {opponentColumnDecks.map((columnDeck) => {
+                  if (rowDeck === columnDeck)
                     return (
-                      <td key={columnDeck}>
-                        <button className={`matrix-cell ${tone.tone}`} onClick={() => onSelect(stats)}>
-                          <strong>{`${stats.winRate.toFixed(1)}%`}</strong>
-                          <span>{stats.wins} - {stats.losses}</span>
-                          <small>{stats.total}戦 ・ {tone.label}</small>
-                        </button>
+                      <td className="diagonal" key={columnDeck}>
+                        —
                       </td>
                     );
-                  })}
-                </tr>
-
-              
-            ))}
-
-          </tbody>
+                  const stats = calculateMatchup(records, rowDeck, columnDeck, turnFilter);
+                  if (stats.total === 0) return <td key={columnDeck} className="matrix-empty" />;
+                  const tone = matchupTone(stats.winRate, stats.total);
+                  return (
+                    <td key={columnDeck}>
+                      <button
+                        className={`matrix-cell ${tone.tone}`}
+                        onClick={() => onSelect(stats)}
+                      >
+                        <strong>{`${stats.winRate.toFixed(1)}%`}</strong>
+                        <span>
+                          {stats.wins} - {stats.losses}
+                        </span>
+                        <small>
+                          {stats.total}戦 ・ {tone.label}
+                        </small>
+                      </button>
+                    </td>
+                  );
+                })}
+              </tr>
+            );
+          })}
+        </tbody>
         </table>
       </div>
-      <div className="legend">
-        <span><i className="legend-dot strong-win" />大幅有利</span>
-        <span><i className="legend-dot win" />有利</span>
-        <span><i className="legend-dot even" />五分</span>
-        <span><i className="legend-dot loss" />不利</span>
-        <span><i className="legend-dot muted" />データ不足</span>
+
+      {/* Mobile Horizontal Scroll Indicator */}
+      <div className="matrix-scroll-hint no-export">
+        <ArrowLeftRight size={13} />
+        <span>左右にスクロールして全デッキを確認できます</span>
       </div>
+
+      <div className="legend">
+        <span>
+          <i className="legend-dot strong-win" />大幅有利
+        </span>
+        <span>
+          <i className="legend-dot win" />有利
+        </span>
+        <span>
+          <i className="legend-dot even" />五分
+        </span>
+        <span>
+          <i className="legend-dot loss" />不利
+        </span>
+        <span>
+          <i className="legend-dot strong-loss" />大幅不利
+        </span>
+        <span>
+          <i className="legend-dot muted" />データ不足
+        </span>
+      </div>
+
+      {/* Selected Deck Quick Card (Mock Screen 2) */}
+      {selectedDeck && (
+        <div className="selected-deck-highlight-card">
+          <span className="selected-deck-label">選択中のデッキ</span>
+          <div className="selected-deck-content">
+            <ClassIcon deckName={selectedDeck} size={28} showBadge />
+            <div className="selected-deck-info">
+              <strong>{selectedDeck}</strong>
+              <small>自分のデッキ</small>
+            </div>
+            {onSelectDeck && (
+              <button
+                type="button"
+                className="button button-ghost mini-btn"
+                onClick={() => onSelectDeck("")}
+              >
+                解除
+              </button>
+            )}
+          </div>
+        </div>
+      )}
     </section>
   );
 }
