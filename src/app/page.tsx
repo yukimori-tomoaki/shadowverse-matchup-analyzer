@@ -181,13 +181,6 @@ export default function Home() {
     return "";
   }, [filters.myDeck, periodDecks]);
 
-  // Primary deck for list view
-  const activeDeckForList = useMemo(() => {
-    if (filters.myDeck) return filters.myDeck;
-    if (periodDecks.length > 0) return periodDecks[0];
-    return "";
-  }, [filters.myDeck, periodDecks]);
-
   const addRecords = async (incoming: MatchRecord[]) => {
     const duplicates = findDuplicates(records, incoming);
     try {
