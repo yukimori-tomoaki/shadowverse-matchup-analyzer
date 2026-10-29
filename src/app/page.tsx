@@ -8,22 +8,17 @@ import {
   ExternalLink,
   Grid3X3,
   Image as ImageIcon,
-  List as ListIcon,
   Menu,
   Palette,
   RotateCcw,
-  Swords,
-  Trash2,
   X,
 } from "lucide-react";
 import { startTransition, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CsvUploader } from "@/components/CsvUploader";
 import { DeckStats } from "@/components/DeckStats";
-import { FilterPanel } from "@/components/FilterPanel";
 import { MatchupDetail } from "@/components/MatchupDetail";
 import { MatchupTable } from "@/components/MatchupTable";
-import { MatchupList } from "@/components/MatchupList";
 import { EnvironmentSelector } from "@/components/EnvironmentSelector";
 import { EnvironmentManager } from "@/components/EnvironmentManager";
 import { ClassIconManager } from "@/components/ClassIconManager";
@@ -40,7 +35,7 @@ import {
 } from "@/lib/matchupCalculator";
 import { fetchEnvironments } from "@/lib/environmentStorage";
 import { fetchClassIconSettings } from "@/lib/classIconStorage";
-import { clearMatches, findDuplicates, loadMatches, saveMatches } from "@/lib/storage";
+import { findDuplicates, loadMatches, saveMatches } from "@/lib/storage";
 import { isSupabaseConfigured, supabase } from "@/lib/supabase";
 import type { MatchFilters, MatchRecord, MatchupStats } from "@/types/match";
 import type { MatchupEnvironment } from "@/types/environment";
@@ -76,8 +71,7 @@ export default function Home() {
   // Theme Selector Modal
   const [showThemeSelector, setShowThemeSelector] = useState(false);
 
-  // Mobile / UI State
-  const [viewMode, setViewMode] = useState<"list" | "matrix">("list");
+  // UI State
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("matchup");
   const [isMenuOpen, setIsMenuOpen] = useState(false);
 
@@ -172,14 +166,6 @@ export default function Home() {
   }, [envRecords, filters.period, filters.startDate, filters.endDate]);
 
   const periodDecks = useMemo(() => getDecks(inPeriodRecords), [inPeriodRecords]);
-  const allExistingDecks = useMemo(() => getDecks(envRecords), [envRecords]);
-
-  // Primary deck for list view
-  const activeDeckForList = useMemo(() => {
-    if (filters.myDeck) return filters.myDeck;
-    if (periodDecks.length > 0) return periodDecks[0];
-    return "";
-  }, [filters.myDeck, periodDecks]);
 
   const addRecords = async (incoming: MatchRecord[]) => {
     const duplicates = findDuplicates(records, incoming);
@@ -211,21 +197,6 @@ export default function Home() {
     }
   };
 
-  const reset = async () => {
-    if (!window.confirm("すべての対戦データを削除しますか？\n\nこの操作は元に戻せません。")) return;
-    try {
-      setSyncing(true);
-      clearMatches();
-      setRecords([]);
-      setDetail(null);
-      setMessage("データを削除しました。");
-    } catch {
-      setMessage("データを削除できませんでした。権限を確認してください。");
-    } finally {
-      setSyncing(false);
-    }
-  };
-
   const environmentNote = selectedEnv ? (selectedEnv.isDefault ? "今環境" : selectedEnv.name) : "全期間";
 
   return (
@@ -248,56 +219,45 @@ export default function Home() {
             ログイン不要・共有ボード
           </span>
 
-          <Link href="/share" className="button button-ghost" style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
-            <ExternalLink size={14} /> 公開ページ
-          </Link>
-
-          <button
-            type="button"
-            className="button button-ghost"
-            onClick={() => setShowThemeSelector(true)}
-            title="テーマ変更"
-          >
-            <Palette size={15} /> テーマ
-          </button>
-
-          <button
-            type="button"
-            className="button button-ghost"
-            onClick={() => setShowClassIconManager(true)}
-            title="クラス画像管理"
-          >
-            <ImageIcon size={15} /> クラス画像
-          </button>
-
-          {records.length > 0 && (
-            <button
-              type="button"
-              className="button button-ghost"
-              onClick={() => void reset()}
-              title="データをすべて削除"
-            >
-              <Trash2 size={15} /> すべて削除
-            </button>
-          )}
-
-          {/* Mobile Hamburger Button */}
+          {/* Menu Button (Desktop & Mobile) */}
           <button
             type="button"
             className="hamburger-menu-btn"
             onClick={() => setIsMenuOpen(!isMenuOpen)}
             aria-label="メニューを開く"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0 14px", width: "auto" }}
           >
-            {isMenuOpen ? <X size={20} /> : <Menu size={20} />}
+            {isMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            <span style={{ fontSize: "13px", fontWeight: 600 }}>メニュー</span>
           </button>
         </div>
       </header>
 
-      {/* Hamburger Dropdown Menu on Mobile */}
+      {/* Dropdown Menu (Accessible on both Desktop & Mobile) */}
       {isMenuOpen && (
         <>
           <div className="env-dropdown-backdrop" onClick={() => setIsMenuOpen(false)} />
           <div className="header-menu-dropdown">
+            <button
+              type="button"
+              className={`header-menu-item ${activeMobileTab === "matchup" ? "active" : ""}`}
+              onClick={() => {
+                setActiveMobileTab("matchup");
+                setIsMenuOpen(false);
+              }}
+            >
+              <Grid3X3 size={16} /> 相性表
+            </button>
+            <button
+              type="button"
+              className={`header-menu-item ${activeMobileTab === "data" ? "active" : ""}`}
+              onClick={() => {
+                setActiveMobileTab("data");
+                setIsMenuOpen(false);
+              }}
+            >
+              <BarChart3 size={16} /> データ分析
+            </button>
             <button
               type="button"
               className="header-menu-item"
@@ -335,19 +295,6 @@ export default function Home() {
             >
               <ExternalLink size={16} /> 公開ページ (/share)
             </Link>
-            {records.length > 0 && (
-              <button
-                type="button"
-                className="header-menu-item"
-                style={{ color: "var(--orange)" }}
-                onClick={() => {
-                  setIsMenuOpen(false);
-                  void reset();
-                }}
-              >
-                <Trash2 size={16} /> 全対戦データを削除
-              </button>
-            )}
           </div>
         </>
       )}
@@ -419,30 +366,26 @@ export default function Home() {
           </section>
         ) : (
           <>
-            {/* Main View Segmented Control (相性 vs データ分析) */}
-            <div className="main-view-segmented-tabs">
-              <button
-                type="button"
-                className={`main-view-tab-btn ${activeMobileTab === "matchup" ? "active" : ""}`}
-                onClick={() => setActiveMobileTab("matchup")}
-              >
-                <Swords size={18} />
-                <span>相性 (デッキ相性データ)</span>
-              </button>
-              <button
-                type="button"
-                className={`main-view-tab-btn ${activeMobileTab === "data" ? "active" : ""}`}
-                onClick={() => setActiveMobileTab("data")}
-              >
-                <BarChart3 size={18} />
-                <span>データ分析</span>
-              </button>
-            </div>
-
-            {/* View A: デッキ相性データ (添付画像2スタイル) */}
+            {/* 相性ページ: 相性表のマトリクス表示機能のみ */}
             {activeMobileTab === "matchup" && (
               <>
-                {/* Deck Matchup Analytics with Donut Chart */}
+                <MatchupTable
+                  records={inPeriodRecords}
+                  rowDecks={periodDecks}
+                  columnDecks={periodDecks}
+                  turnFilter={filters.turn}
+                  classIcons={classIcons}
+                  selectedDeck={filters.myDeck}
+                  onSelect={setDetail}
+                  onSelectDeck={(deck) => setFilters((prev) => ({ ...prev, myDeck: deck }))}
+                />
+              </>
+            )}
+
+            {/* データページ: デッキ相性データ + 戦績データ分析 + デッキ別パフォーマンス */}
+            {activeMobileTab === "data" && (
+              <>
+                {/* デッキ相性データ (ドーナツチャート・得意苦手対面) */}
                 <MatchupAnalyticsView
                   records={inPeriodRecords}
                   allDecks={periodDecks}
@@ -454,70 +397,14 @@ export default function Home() {
                   onSelectStats={setDetail}
                 />
 
-                {/* Filter Panel (Collapsible) */}
-                <FilterPanel
-                  filters={filters}
-                  decks={allExistingDecks}
-                  collapsible={true}
-                  defaultExpanded={false}
-                  onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
-                />
-
-                {/* View Switcher: List vs Matrix */}
-                <div className="view-switch-group">
-                  <button
-                    type="button"
-                    className={`view-switch-btn ${viewMode === "list" ? "active" : ""}`}
-                    onClick={() => setViewMode("list")}
-                  >
-                    <ListIcon size={16} />
-                    <span>リスト</span>
-                  </button>
-                  <button
-                    type="button"
-                    className={`view-switch-btn ${viewMode === "matrix" ? "active" : ""}`}
-                    onClick={() => setViewMode("matrix")}
-                  >
-                    <Grid3X3 size={16} />
-                    <span>相性表</span>
-                  </button>
-                </div>
-
-                {/* Main Matchup Views */}
-                {viewMode === "list" ? (
-                  <MatchupList
-                    records={inPeriodRecords}
-                    activeDeck={activeDeckForList}
-                    opponentDecks={periodDecks}
-                    classIcons={classIcons}
-                    turnFilter={filters.turn}
-                    onSelect={setDetail}
-                  />
-                ) : (
-                  <MatchupTable
-                    records={inPeriodRecords}
-                    rowDecks={periodDecks}
-                    columnDecks={periodDecks}
-                    turnFilter={filters.turn}
-                    classIcons={classIcons}
-                    selectedDeck={filters.myDeck}
-                    onSelect={setDetail}
-                    onSelectDeck={(deck) => setFilters((prev) => ({ ...prev, myDeck: deck }))}
-                  />
-                )}
-              </>
-            )}
-
-            {/* View B: データ分析 (添付画像1スタイル) */}
-            {activeMobileTab === "data" && (
-              <>
+                {/* 戦績データ分析 (最多使用デッキ・総合サマリー・他使用デッキ・環境シェアTop3) */}
                 <DataAnalysisView
                   records={inPeriodRecords}
                   environmentName={environmentNote}
                   classIcons={classIcons}
                 />
 
-                {/* Deck Performance Stats */}
+                {/* デッキ別パフォーマンス */}
                 <DeckStats records={inPeriodRecords} />
               </>
             )}

@@ -1,22 +1,25 @@
 "use client";
 
 import {
+  BarChart3,
   Database,
   Eye,
   Grid3X3,
-  List as ListIcon,
+  Menu,
   Palette,
   ShieldAlert,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { DeckStats } from "@/components/DeckStats";
 import { FilterPanel } from "@/components/FilterPanel";
 import { MatchupDetail } from "@/components/MatchupDetail";
 import { MatchupTable } from "@/components/MatchupTable";
-import { MatchupList } from "@/components/MatchupList";
 import { EnvironmentSelector } from "@/components/EnvironmentSelector";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { MobileNav, type MobileTab } from "@/components/MobileNav";
+import { DataAnalysisView } from "@/components/DataAnalysisView";
+import { MatchupAnalyticsView } from "@/components/MatchupAnalyticsView";
 import { useTheme } from "@/hooks/useTheme";
 import { DEFAULT_SHARE_PERIOD } from "@/constants/decks";
 import {
@@ -58,9 +61,9 @@ export default function PublicBoardPage() {
   // Theme modal
   const [showThemeSelector, setShowThemeSelector] = useState(false);
 
-  // View Mode: list vs matrix
-  const [viewMode, setViewMode] = useState<"list" | "matrix">("matrix");
+  // UI State
   const [activeMobileTab, setActiveMobileTab] = useState<MobileTab>("matchup");
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   useEffect(() => {
     // Fetch environments
@@ -157,13 +160,7 @@ export default function PublicBoardPage() {
   }, [periodDecks, filters.selectedDecks]);
 
   const columnDecks = periodDecks;
-
-  // Primary deck for list view
-  const activeDeckForList = useMemo(() => {
-    if (filters.myDeck) return filters.myDeck;
-    if (rowDecks.length > 0) return rowDecks[0];
-    return "";
-  }, [filters.myDeck, rowDecks]);
+  const environmentNote = selectedEnv ? (selectedEnv.isDefault ? "今環境" : selectedEnv.name) : "全期間";
 
   if (error) {
     return (
@@ -196,14 +193,55 @@ export default function PublicBoardPage() {
           </span>
           <button
             type="button"
-            className="button button-ghost"
-            onClick={() => setShowThemeSelector(true)}
-            title="テーマ変更"
+            className="hamburger-menu-btn"
+            onClick={() => setIsMenuOpen(!isMenuOpen)}
+            aria-label="メニューを開く"
+            style={{ display: "inline-flex", alignItems: "center", gap: 6, padding: "0 14px", width: "auto" }}
           >
-            <Palette size={15} /> テーマ
+            {isMenuOpen ? <X size={18} /> : <Menu size={18} />}
+            <span style={{ fontSize: "13px", fontWeight: 600 }}>メニュー</span>
           </button>
         </div>
       </header>
+
+      {/* Dropdown Menu for Public Page */}
+      {isMenuOpen && (
+        <>
+          <div className="env-dropdown-backdrop" onClick={() => setIsMenuOpen(false)} />
+          <div className="header-menu-dropdown">
+            <button
+              type="button"
+              className={`header-menu-item ${activeMobileTab === "matchup" ? "active" : ""}`}
+              onClick={() => {
+                setActiveMobileTab("matchup");
+                setIsMenuOpen(false);
+              }}
+            >
+              <Grid3X3 size={16} /> 相性表
+            </button>
+            <button
+              type="button"
+              className={`header-menu-item ${activeMobileTab === "data" ? "active" : ""}`}
+              onClick={() => {
+                setActiveMobileTab("data");
+                setIsMenuOpen(false);
+              }}
+            >
+              <BarChart3 size={16} /> データ分析
+            </button>
+            <button
+              type="button"
+              className="header-menu-item"
+              onClick={() => {
+                setShowThemeSelector(true);
+                setIsMenuOpen(false);
+              }}
+            >
+              <Palette size={16} /> テーマ設定
+            </button>
+          </div>
+        </>
+      )}
 
       <div className="public-content">
         {/* Environment Bar */}
@@ -232,77 +270,77 @@ export default function PublicBoardPage() {
 
         {records.length > 0 ? (
           <>
-            <FilterPanel
-              filters={filters}
-              decks={periodDecks}
-              deckLabel="使用デッキ"
-              showClass={false}
-              showDeck={false}
-              showMultiDeck={true}
-              showTurn={false}
-              showExcludeMirror={false}
-              collapsible={true}
-              defaultExpanded={false}
-              onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
-            />
-
-            {/* View Switcher on Mobile/Public */}
-            <div className="view-switch-group">
-              <button
-                type="button"
-                className={`view-switch-btn ${viewMode === "list" ? "active" : ""}`}
-                onClick={() => setViewMode("list")}
-              >
-                <ListIcon size={16} />
-                <span>リスト</span>
-              </button>
-              <button
-                type="button"
-                className={`view-switch-btn ${viewMode === "matrix" ? "active" : ""}`}
-                onClick={() => setViewMode("matrix")}
-              >
-                <Grid3X3 size={16} />
-                <span>相性表</span>
-              </button>
-            </div>
-
-            {rowDecks.length > 0 && columnDecks.length > 0 ? (
+            {/* 相性ページ: 相性表マトリクスのみ */}
+            {activeMobileTab === "matchup" && (
               <>
-                {viewMode === "list" ? (
-                  <MatchupList
-                    records={displayRecords}
-                    activeDeck={activeDeckForList}
-                    opponentDecks={columnDecks}
-                    classIcons={classIcons}
-                    turnFilter={filters.turn}
-                    onSelect={setDetail}
-                  />
-                ) : (
+                <FilterPanel
+                  filters={filters}
+                  decks={periodDecks}
+                  deckLabel="使用デッキ"
+                  showClass={false}
+                  showDeck={false}
+                  showMultiDeck={true}
+                  showTurn={false}
+                  showExcludeMirror={false}
+                  collapsible={true}
+                  defaultExpanded={false}
+                  onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
+                />
+
+                {rowDecks.length > 0 && columnDecks.length > 0 ? (
                   <MatchupTable
                     records={displayRecords}
                     rowDecks={rowDecks}
                     columnDecks={columnDecks}
                     classIcons={classIcons}
+                    selectedDeck={filters.myDeck}
                     onSelect={setDetail}
+                    onSelectDeck={(deck) => setFilters((prev) => ({ ...prev, myDeck: deck }))}
                   />
+                ) : (
+                  <div
+                    className="panel"
+                    style={{
+                      textAlign: "center",
+                      padding: "48px 20px",
+                      color: "var(--muted)",
+                    }}
+                  >
+                    <p style={{ margin: 0, fontSize: "14px" }}>
+                      {filters.selectedDecks !== undefined && filters.selectedDecks.length === 0
+                        ? "使用デッキが選択されていません。「使用デッキ」フィルターから1つ以上のデッキを選択してください。"
+                        : "指定された条件に一致する対戦データがありません。表示条件を変更してください。"}
+                    </p>
+                  </div>
                 )}
+              </>
+            )}
+
+            {/* データページ: デッキ相性データ + 戦績データ分析 + デッキ別パフォーマンス */}
+            {activeMobileTab === "data" && (
+              <>
+                {/* デッキ相性データ (ドーナツチャート・得意苦手対面) */}
+                <MatchupAnalyticsView
+                  records={displayRecords}
+                  allDecks={periodDecks}
+                  selectedDeck={filters.myDeck}
+                  onSelectDeck={(deck) => setFilters((prev) => ({ ...prev, myDeck: deck }))}
+                  period={filters.period as "all" | "today" | "7days" | "30days"}
+                  onSelectPeriod={(p) => setFilters((prev) => ({ ...prev, period: p }))}
+                  classIcons={classIcons}
+                  onSelectStats={setDetail}
+                />
+
+                {/* 戦績データ分析 (最多使用デッキ・総合サマリー・他使用デッキ・環境シェアTop3) */}
+                <DataAnalysisView
+                  records={displayRecords}
+                  environmentName={environmentNote}
+                  classIcons={classIcons}
+                />
+
+                {/* デッキ別パフォーマンス */}
                 <DeckStats records={displayRecords} decks={rowDecks} />
               </>
-            ) : (
-              <div
-                className="panel"
-                style={{
-                  textAlign: "center",
-                  padding: "48px 20px",
-                  color: "var(--muted)",
-                }}
-              >
-                <p style={{ margin: 0, fontSize: "14px" }}>
-                  {filters.selectedDecks !== undefined && filters.selectedDecks.length === 0
-                    ? "使用デッキが選択されていません。「使用デッキ」フィルターから1つ以上のデッキを選択してください。"
-                    : "指定された条件に一致する対戦データがありません。表示条件を変更してください。"}
-                </p>
-              </div>
             )}
           </>
         ) : (
@@ -335,12 +373,7 @@ export default function PublicBoardPage() {
         activeTab={activeMobileTab}
         onTabChange={(tab) => {
           setActiveMobileTab(tab);
-          if (tab === "matchup") {
-            window.scrollTo({ top: 0, behavior: "smooth" });
-          } else if (tab === "data") {
-            const dataEl = document.querySelector(".deck-stats-grid");
-            if (dataEl) dataEl.scrollIntoView({ behavior: "smooth" });
-          }
+          window.scrollTo({ top: 0, behavior: "smooth" });
         }}
         showEnvironmentTab={false}
       />

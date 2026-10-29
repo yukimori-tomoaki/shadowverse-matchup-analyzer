@@ -1,8 +1,7 @@
 "use client";
 
-import React, { useRef, useState } from "react";
-import { BarChart3, Calendar, Download, Flame, Trophy } from "lucide-react";
-import html2canvas from "html2canvas";
+import React from "react";
+import { BarChart3, Calendar, Flame, Trophy } from "lucide-react";
 import type { MatchRecord } from "@/types/match";
 import type { ClassKey } from "@/types/classIcon";
 import {
@@ -45,9 +44,6 @@ export function DataAnalysisView({
   environmentName = "今シーズン",
   classIcons,
 }: DataAnalysisViewProps) {
-  const cardRef = useRef<HTMLDivElement>(null);
-  const [downloading, setDownloading] = useState(false);
-
   const totalMatches = records.length;
   const wins = records.filter((r) => r.result === "WIN").length;
   const losses = totalMatches - wins;
@@ -59,28 +55,6 @@ export function DataAnalysisView({
   const otherDecks = usageStats.slice(1);
 
   const opponentShares = calculateOpponentShare(records).slice(0, 5);
-
-  const handleDownload = async () => {
-    if (!cardRef.current || downloading) return;
-    try {
-      setDownloading(true);
-      const canvas = await html2canvas(cardRef.current, {
-        backgroundColor: "#0d1117",
-        scale: 2,
-        useCORS: true,
-      });
-      const dataUrl = canvas.toDataURL("image/png");
-      const link = document.createElement("a");
-      link.download = `shadowverse-stats-${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = dataUrl;
-      link.click();
-    } catch (err) {
-      console.error("画像ダウンロードエラー:", err);
-      alert("画像の生成に失敗しました。");
-    } finally {
-      setDownloading(false);
-    }
-  };
 
   if (totalMatches === 0) {
     return (
@@ -94,8 +68,7 @@ export function DataAnalysisView({
 
   return (
     <div className="data-analysis-container">
-      {/* キャプチャ対象の戦績カード */}
-      <div className="stats-report-card" ref={cardRef}>
+      <div className="stats-report-card">
         {/* カードヘッダー */}
         <div className="report-card-header">
           <div className="report-title-group">
@@ -262,19 +235,6 @@ export function DataAnalysisView({
             </div>
           </div>
         )}
-      </div>
-
-      {/* 戦績カードを画像でダウンロード ボタン */}
-      <div className="download-btn-container">
-        <button
-          type="button"
-          className="download-report-btn"
-          onClick={() => void handleDownload()}
-          disabled={downloading}
-        >
-          <Download size={18} />
-          <span>{downloading ? "画像を生成中..." : "戦績カードを画像でダウンロード"}</span>
-        </button>
       </div>
     </div>
   );
