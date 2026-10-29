@@ -1,6 +1,7 @@
 "use client";
 
 import {
+  BarChart3,
   Calendar,
   Database,
   Download,
@@ -11,6 +12,7 @@ import {
   Menu,
   Palette,
   RotateCcw,
+  Swords,
   Trash2,
   X,
 } from "lucide-react";
@@ -19,21 +21,20 @@ import Link from "next/link";
 import { CsvUploader } from "@/components/CsvUploader";
 import { DeckStats } from "@/components/DeckStats";
 import { FilterPanel } from "@/components/FilterPanel";
-import { MatchHistoryTable } from "@/components/MatchHistoryTable";
 import { MatchupDetail } from "@/components/MatchupDetail";
 import { MatchupTable } from "@/components/MatchupTable";
 import { MatchupList } from "@/components/MatchupList";
-import { SummaryCards } from "@/components/SummaryCards";
 import { EnvironmentSelector } from "@/components/EnvironmentSelector";
 import { EnvironmentManager } from "@/components/EnvironmentManager";
 import { ClassIconManager } from "@/components/ClassIconManager";
 import { ThemeSelector } from "@/components/ThemeSelector";
 import { MobileNav, type MobileTab } from "@/components/MobileNav";
+import { DataAnalysisView } from "@/components/DataAnalysisView";
+import { MatchupAnalyticsView } from "@/components/MatchupAnalyticsView";
 import { useTheme } from "@/hooks/useTheme";
 import { appendPublicBoard, loadPublicBoard } from "@/lib/publicBoard";
 import {
   filterByEnvironment,
-  filterMatches,
   filterPeriod,
   getDecks,
 } from "@/lib/matchupCalculator";
@@ -170,23 +171,15 @@ export default function Home() {
     return filterPeriod(envRecords, filters.period, filters.startDate, filters.endDate);
   }, [envRecords, filters.period, filters.startDate, filters.endDate]);
 
-  // 3. Filter by Deck & Turn
-  const filteredRecords = useMemo(() => {
-    return filterMatches(
-      envRecords,
-      filters.period,
-      filters.startDate,
-      filters.endDate,
-      filters.myDeck,
-      filters.turn
-    );
-  }, [envRecords, filters]);
-
   const periodDecks = useMemo(() => getDecks(inPeriodRecords), [inPeriodRecords]);
-  const matrixRowDecks = useMemo(() => (filters.myDeck ? [filters.myDeck] : periodDecks), [filters.myDeck, periodDecks]);
-  const existingDecks = useMemo(() => getDecks(filteredRecords), [filteredRecords]);
   const allExistingDecks = useMemo(() => getDecks(envRecords), [envRecords]);
-  const wins = filteredRecords.filter((record) => record.result === "WIN").length;
+
+  // Primary deck for list view
+  const activeDeckForList = useMemo(() => {
+    if (filters.myDeck) return filters.myDeck;
+    if (periodDecks.length > 0) return periodDecks[0];
+    return "";
+  }, [filters.myDeck, periodDecks]);
 
   // Primary deck for list view
   const activeDeckForList = useMemo(() => {
@@ -241,9 +234,6 @@ export default function Home() {
   };
 
   const environmentNote = selectedEnv ? (selectedEnv.isDefault ? "今環境" : selectedEnv.name) : "全期間";
-  const periodNote = selectedEnv
-    ? `${selectedEnv.startDate.slice(5).replace("-", "/")}〜${selectedEnv.endDate ? selectedEnv.endDate.slice(5).replace("-", "/") : ""}`
-    : "全期間";
 
   return (
     <main className="app-shell">
@@ -436,73 +426,108 @@ export default function Home() {
           </section>
         ) : (
           <>
-            {/* Summary Cards */}
-            <SummaryCards
-              total={filteredRecords.length}
-              wins={wins}
-              losses={filteredRecords.length - wins}
-              decks={existingDecks.length}
-              environmentNote={environmentNote}
-              periodNote={periodNote}
-            />
-
-            {/* Filter Panel (Collapsible on Mobile) */}
-            <FilterPanel
-              filters={filters}
-              decks={allExistingDecks}
-              collapsible={true}
-              defaultExpanded={false}
-              onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
-            />
-
-            {/* View Switcher: List vs Matrix */}
-            <div className="view-switch-group">
+            {/* Main View Segmented Control (相性 vs データ分析) */}
+            <div className="main-view-segmented-tabs">
               <button
                 type="button"
-                className={`view-switch-btn ${viewMode === "list" ? "active" : ""}`}
-                onClick={() => setViewMode("list")}
+                className={`main-view-tab-btn ${activeMobileTab === "matchup" ? "active" : ""}`}
+                onClick={() => setActiveMobileTab("matchup")}
               >
-                <ListIcon size={16} />
-                <span>リスト</span>
+                <Swords size={18} />
+                <span>相性 (デッキ相性データ)</span>
               </button>
               <button
                 type="button"
-                className={`view-switch-btn ${viewMode === "matrix" ? "active" : ""}`}
-                onClick={() => setViewMode("matrix")}
+                className={`main-view-tab-btn ${activeMobileTab === "data" ? "active" : ""}`}
+                onClick={() => setActiveMobileTab("data")}
               >
-                <Grid3X3 size={16} />
-                <span>相性表</span>
+                <BarChart3 size={18} />
+                <span>データ分析</span>
               </button>
             </div>
 
-            {/* Main Matchup Views */}
-            {viewMode === "list" ? (
-              <MatchupList
-                records={inPeriodRecords}
-                activeDeck={activeDeckForList}
-                opponentDecks={periodDecks}
-                classIcons={classIcons}
-                turnFilter={filters.turn}
-                onSelect={setDetail}
-              />
-            ) : (
-              <MatchupTable
-                records={inPeriodRecords}
-                rowDecks={matrixRowDecks}
-                columnDecks={periodDecks}
-                turnFilter={filters.turn}
-                classIcons={classIcons}
-                selectedDeck={filters.myDeck}
-                onSelect={setDetail}
-                onSelectDeck={(deck) => setFilters((prev) => ({ ...prev, myDeck: deck }))}
-              />
+            {/* View A: デッキ相性データ (添付画像2スタイル) */}
+            {activeMobileTab === "matchup" && (
+              <>
+                {/* Deck Matchup Analytics with Donut Chart */}
+                <MatchupAnalyticsView
+                  records={inPeriodRecords}
+                  allDecks={periodDecks}
+                  selectedDeck={filters.myDeck}
+                  onSelectDeck={(deck) => setFilters((prev) => ({ ...prev, myDeck: deck }))}
+                  period={filters.period}
+                  onSelectPeriod={(p) => setFilters((prev) => ({ ...prev, period: p }))}
+                  classIcons={classIcons}
+                  onSelectStats={setDetail}
+                />
+
+                {/* Filter Panel (Collapsible) */}
+                <FilterPanel
+                  filters={filters}
+                  decks={allExistingDecks}
+                  collapsible={true}
+                  defaultExpanded={false}
+                  onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
+                />
+
+                {/* View Switcher: List vs Matrix */}
+                <div className="view-switch-group">
+                  <button
+                    type="button"
+                    className={`view-switch-btn ${viewMode === "list" ? "active" : ""}`}
+                    onClick={() => setViewMode("list")}
+                  >
+                    <ListIcon size={16} />
+                    <span>リスト</span>
+                  </button>
+                  <button
+                    type="button"
+                    className={`view-switch-btn ${viewMode === "matrix" ? "active" : ""}`}
+                    onClick={() => setViewMode("matrix")}
+                  >
+                    <Grid3X3 size={16} />
+                    <span>相性表</span>
+                  </button>
+                </div>
+
+                {/* Main Matchup Views */}
+                {viewMode === "list" ? (
+                  <MatchupList
+                    records={inPeriodRecords}
+                    activeDeck={activeDeckForList}
+                    opponentDecks={periodDecks}
+                    classIcons={classIcons}
+                    turnFilter={filters.turn}
+                    onSelect={setDetail}
+                  />
+                ) : (
+                  <MatchupTable
+                    records={inPeriodRecords}
+                    rowDecks={periodDecks}
+                    columnDecks={periodDecks}
+                    turnFilter={filters.turn}
+                    classIcons={classIcons}
+                    selectedDeck={filters.myDeck}
+                    onSelect={setDetail}
+                    onSelectDeck={(deck) => setFilters((prev) => ({ ...prev, myDeck: deck }))}
+                  />
+                )}
+              </>
             )}
 
-            {/* Deck Performance Stats */}
-            <DeckStats records={inPeriodRecords} />
+            {/* View B: データ分析 (添付画像1スタイル) */}
+            {activeMobileTab === "data" && (
+              <>
+                <DataAnalysisView
+                  records={inPeriodRecords}
+                  environmentName={environmentNote}
+                  classIcons={classIcons}
+                />
 
-            {/* Match History Table */}
-            <MatchHistoryTable records={filteredRecords} />
+                {/* Deck Performance Stats */}
+                <DeckStats records={inPeriodRecords} />
+              </>
+            )}
           </>
         )}
       </div>
@@ -546,21 +571,15 @@ export default function Home() {
         />
       )}
 
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation (相性 vs データ分析 vs 環境管理) */}
       <MobileNav
         activeTab={activeMobileTab}
         onTabChange={(tab) => {
           setActiveMobileTab(tab);
           if (tab === "environments") {
             setShowEnvManager(true);
-          } else if (tab === "matchup") {
+          } else {
             window.scrollTo({ top: 0, behavior: "smooth" });
-          } else if (tab === "history") {
-            const historyEl = document.querySelector(".history-panel");
-            if (historyEl) historyEl.scrollIntoView({ behavior: "smooth" });
-          } else if (tab === "data") {
-            const dataEl = document.querySelector(".deck-stats-grid");
-            if (dataEl) dataEl.scrollIntoView({ behavior: "smooth" });
           }
         }}
         showEnvironmentTab={true}

@@ -136,7 +136,13 @@ export function MatchupTable({
       </div>
 
       <div className={"matrix-scroll " + (showFull ? "matrix-full" : "")}>
-        <table className="matrix">
+        <table className="matrix" style={{ tableLayout: "fixed" }}>
+          <colgroup>
+            <col style={{ width: "170px", minWidth: "170px" }} />
+            {opponentColumnDecks.map((d) => (
+              <col key={d} style={{ width: "120px", minWidth: "120px" }} />
+            ))}
+          </colgroup>
           <thead>
             <tr>
               <th className="corner-th">
@@ -148,8 +154,12 @@ export function MatchupTable({
               </th>
               {opponentColumnDecks.map((deck) => {
                 const key = getDeckClassKey(deck);
+                const isSelectedCol = selectedDeck === deck;
                 return (
-                  <th key={deck} className="col-header-th">
+                  <th
+                    key={deck}
+                    className={`col-header-th ${isSelectedCol ? "highlighted-col-header" : ""}`}
+                  >
                     <div className="col-deck-cell">
                       <ClassIcon
                         deckName={deck}
@@ -167,9 +177,10 @@ export function MatchupTable({
           <tbody>
             {myRowDecks.map((rowDeck) => {
               const rowKey = getDeckClassKey(rowDeck);
+              const isSelectedRow = selectedDeck === rowDeck;
               return (
-                <tr key={rowDeck}>
-                  <th className="row-header-th">
+                <tr key={rowDeck} className={isSelectedRow ? "selected-deck-row" : ""}>
+                  <th className={`row-header-th ${isSelectedRow ? "highlighted-row-header" : ""}`}>
                     <div className="row-deck-cell">
                       <ClassIcon
                         deckName={rowDeck}
