@@ -376,4 +376,324 @@ export function calculateOpponentShare(records: MatchRecord[]): OpponentShareSta
   return list;
 }
 
+/**
+ * 得意対面・苦手対面のランキング対象となる最低対戦回数
+ */
+export const MIN_MATCHES_FOR_RANKING = 10;
+
+/**
+ * 対戦回数に基づく信頼度レベル
+ */
+export type ConfidenceLevel = "low" | "medium" | "high";
+
+export interface ConfidenceInfo {
+  level: ConfidenceLevel;
+  label: string;
+  note: string;
+  description: string;
+}
+
+/**
+ * 対戦回数に応じた信頼度情報の取得
+ * - 1〜10戦: 参考記録
+ * - 11〜20戦: 中程度
+ * - 21戦以上: 高い
+ */
+export function getConfidenceInfo(totalMatches: number): ConfidenceInfo {
+  if (totalMatches <= 10) {
+    const note = "対戦回数10戦以下のため参考記録（目安）です";
+    return {
+      level: "low",
+      label: "参考記録",
+      note,
+      description: note,
+    };
+  }
+  if (totalMatches <= 20) {
+    const note = "対戦回数11〜20戦に基づく目安です";
+    return {
+      level: "medium",
+      label: "中程度",
+      note,
+      description: note,
+    };
+  }
+  const note = "対戦回数21戦以上に基づく目安です";
+  return {
+    level: "high",
+    label: "高い",
+    note,
+    description: note,
+  };
+}
+
+/**
+ * ウィルソンの信頼区間 (Wilson score interval) の下限・上限を計算
+ * @param wins 成功数（勝利数など）
+ * @param total 試行回数（対戦数）
+ * @param z 信頼水準の z 値 (デフォルト: 1.96 = 95%信頼区間)
+ */
+export function calculateWilsonScore(
+  wins: number,
+  total: number,
+  z: number = 1.96
+): { lower: number; upper: number } {
+  if (total <= 0) {
+    return { lower: 0, upper: 0 };
+  }
+
+  const p = Math.max(0, Math.min(1, wins / total));
+  const z2 = z * z;
+  const denominator = 1 + z2 / total;
+  const center = p + z2 / (2 * total);
+  const spread = z * Math.sqrt((p * (1 - p) + z2 / (4 * total)) / total);
+
+  const lower = Math.max(0, (center - spread) / denominator);
+  const upper = Math.min(1, (center + spread) / denominator);
+
+  return { lower, upper };
+}
+
+/**
+ * 得意対面向けの Wilson score lower bound を計算
+ * 勝率が統計的に高いと期待できる下限スコア (0〜1)
+ */
+export function calculateWilsonLowerBound(wins: number, total: number, z: number = 1.96): number {
+  return calculateWilsonScore(wins, total, z).lower;
+}
+
+/**
+ * 苦手対面向けのスコアを計算
+ * 敗北率（losses / total）の Wilson score lower bound (0〜1)
+ * スコアが高いほど「統計的に確実に負けやすい（苦手）」と判定される
+ */
+export function calculateLossWilsonLowerBound(losses: number, total: number, z: number = 1.96): number {
+  return calculateWilsonScore(losses, total, z).lower;
+}
+
+/**
+ * 特定の相手デッキに対する全体戦績を集計（全デッキ合計用）
+ */
+export function calculateOverallMatchup(
+  records: MatchRecord[],
+  opponentDeck: string,
+  turnFilter: string = "all"
+): MatchupStats {
+  const matchingRecords = records.filter((r) => r.opponentDeck === opponentDeck);
+
+  const filtered =
+    turnFilter === "all"
+      ? matchingRecords
+      : matchingRecords.filter((r) => r.turn === turnFilter);
+
+  const wins = filtered.filter((r) => r.result === "WIN").length;
+  const total = filtered.length;
+  const losses = total - wins;
+
+  const firstMatches = matchingRecords.filter((r) => r.turn === "先攻");
+  const firstWins = firstMatches.filter((r) => r.result === "WIN").length;
+
+  const secondMatches = matchingRecords.filter((r) => r.turn === "後攻");
+  const secondWins = secondMatches.filter((r) => r.result === "WIN").length;
+
+  return {
+    myDeck: "全デッキ合計",
+    opponentDeck,
+    wins,
+    losses,
+    total,
+    winRate: winRate(wins, total),
+    firstWins,
+    firstTotal: firstMatches.length,
+    secondWins,
+    secondTotal: secondMatches.length,
+  };
+}
+
+export interface RankedMatchupItem {
+  opponentDeck: string;
+  stats: MatchupStats;
+  winRate: number;
+  total: number;
+  wins: number;
+  losses: number;
+  score: number; // Wilson score lower bound
+  rank: number;
+  confidence: ConfidenceInfo;
+}
+
+export interface ExcludedMatchupItem {
+  opponentDeck: string;
+  stats: MatchupStats;
+  winRate: number;
+  total: number;
+  wins: number;
+  losses: number;
+  reason: string; // ランキング対象外である理由
+  confidence: ConfidenceInfo;
+}
+
+export interface MatchupRankingResult {
+  favored: RankedMatchupItem[];
+  unfavorable: RankedMatchupItem[];
+  referenceRecords: ExcludedMatchupItem[];
+}
+
+export interface CalculateRankingOptions {
+  records: MatchRecord[];
+  selectedDeck?: string;
+  turnFilter?: string;
+  minMatches?: number;
+}
+
+/**
+ * 得意対面・苦手対面および参考記録の精密ランキングを計算
+ */
+export function calculateMatchupRankings(
+  options: CalculateRankingOptions
+): MatchupRankingResult {
+  const {
+    records,
+    selectedDeck = "",
+    turnFilter = "all",
+    minMatches = MIN_MATCHES_FOR_RANKING,
+  } = options;
+
+  // 対戦相手デッキの一覧を抽出
+  const opponentDecks = getOpponentDecks(records);
+
+  const favoredCandidates: Array<{
+    opponentDeck: string;
+    stats: MatchupStats;
+    winRate: number;
+    total: number;
+    wins: number;
+    losses: number;
+    score: number;
+  }> = [];
+
+  const unfavorableCandidates: Array<{
+    opponentDeck: string;
+    stats: MatchupStats;
+    winRate: number;
+    total: number;
+    wins: number;
+    losses: number;
+    score: number;
+  }> = [];
+
+  const referenceRecords: ExcludedMatchupItem[] = [];
+
+  for (const opp of opponentDecks) {
+    if (selectedDeck && opp === selectedDeck) continue;
+
+    const stats = selectedDeck
+      ? calculateMatchup(records, selectedDeck, opp, turnFilter)
+      : calculateOverallMatchup(records, opp, turnFilter);
+
+    if (stats.total === 0) continue;
+
+    const total = stats.total;
+    const wins = stats.wins;
+    const losses = stats.losses;
+    const rate = stats.winRate;
+    const confidence = getConfidenceInfo(total);
+
+    // 1. 最低対戦回数未満の場合：参考記録
+    if (total < minMatches) {
+      referenceRecords.push({
+        opponentDeck: opp,
+        stats,
+        winRate: rate,
+        total,
+        wins,
+        losses,
+        reason: `対戦数不足（${minMatches}戦未満）`,
+        confidence,
+      });
+      continue;
+    }
+
+    // 2. 対戦回数が10戦以上ある場合
+    if (wins > losses) {
+      // 勝ち越し：得意対面候補 (勝率 Wilson lower bound)
+      const score = calculateWilsonLowerBound(wins, total);
+      favoredCandidates.push({
+        opponentDeck: opp,
+        stats,
+        winRate: rate,
+        total,
+        wins,
+        losses,
+        score,
+      });
+    } else if (wins < losses) {
+      // 負け越し：苦手対面候補 (敗北率 Wilson lower bound)
+      const score = calculateLossWilsonLowerBound(losses, total);
+      unfavorableCandidates.push({
+        opponentDeck: opp,
+        stats,
+        winRate: rate,
+        total,
+        wins,
+        losses,
+        score,
+      });
+    } else {
+      // wins === losses（五分）：得意でも苦手でもないためランキング対象外
+      referenceRecords.push({
+        opponentDeck: opp,
+        stats,
+        winRate: rate,
+        total,
+        wins,
+        losses,
+        reason: "勝率五分（得意・苦手判定なし）",
+        confidence,
+      });
+    }
+  }
+
+  // 得意対面のソート: Wilson lower bound 降順 → total 降順 → winRate 降順 → wins 降順
+  favoredCandidates.sort((a, b) => {
+    if (Math.abs(b.score - a.score) > 1e-6) return b.score - a.score;
+    if (b.total !== a.total) return b.total - a.total;
+    if (Math.abs(b.winRate - a.winRate) > 1e-6) return b.winRate - a.winRate;
+    return b.wins - a.wins;
+  });
+
+  // 苦手対面のソート: 敗北率 Wilson lower bound 降順 → total 降順 → winRate 昇順 → losses 降順
+  unfavorableCandidates.sort((a, b) => {
+    if (Math.abs(b.score - a.score) > 1e-6) return b.score - a.score;
+    if (b.total !== a.total) return b.total - a.total;
+    if (Math.abs(a.winRate - b.winRate) > 1e-6) return a.winRate - b.winRate;
+    return b.losses - a.losses;
+  });
+
+  // 参考記録のソート: total 降順 → winRate 降順
+  referenceRecords.sort((a, b) => {
+    if (b.total !== a.total) return b.total - a.total;
+    return b.winRate - a.winRate;
+  });
+
+  // 順位付与（同スコア時は同順位も考慮可能だが、表示用に 1, 2, ... の順位を付ける）
+  const favored: RankedMatchupItem[] = favoredCandidates.map((c, index) => ({
+    ...c,
+    rank: index + 1,
+    confidence: getConfidenceInfo(c.total),
+  }));
+
+  const unfavorable: RankedMatchupItem[] = unfavorableCandidates.map((c, index) => ({
+    ...c,
+    rank: index + 1,
+    confidence: getConfidenceInfo(c.total),
+  }));
+
+  return {
+    favored,
+    unfavorable,
+    referenceRecords,
+  };
+}
+
 

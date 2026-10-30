@@ -393,6 +393,7 @@ export default function Home() {
                   onSelectDeck={(deck) => setFilters((prev) => ({ ...prev, myDeck: deck }))}
                   period={filters.period}
                   onSelectPeriod={(p) => setFilters((prev) => ({ ...prev, period: p }))}
+                  turnFilter={filters.turn}
                   classIcons={classIcons}
                   onSelectStats={setDetail}
                 />

@@ -327,6 +327,7 @@ export default function PublicBoardPage() {
                   onSelectDeck={(deck) => setFilters((prev) => ({ ...prev, myDeck: deck }))}
                   period={filters.period as "all" | "today" | "7days" | "30days"}
                   onSelectPeriod={(p) => setFilters((prev) => ({ ...prev, period: p }))}
+                  turnFilter={filters.turn}
                   classIcons={classIcons}
                   onSelectStats={setDetail}
                 />

@@ -3,6 +3,7 @@
 import React, { useMemo } from "react";
 import {
   ChevronDown,
+  Info,
   PieChart as PieIcon,
   TrendingDown,
   TrendingUp,
@@ -10,9 +11,9 @@ import {
 import type { MatchRecord, MatchupStats } from "@/types/match";
 import type { ClassKey } from "@/types/classIcon";
 import {
-  calculateMatchup,
-  getDecks,
+  calculateMatchupRankings,
   getMyDecks,
+  MIN_MATCHES_FOR_RANKING,
 } from "@/lib/matchupCalculator";
 import { getDeckClassKey } from "@/constants/classIcons";
 import { ClassIcon } from "@/components/ClassIcon";
@@ -24,6 +25,7 @@ export type MatchupAnalyticsViewProps = {
   onSelectDeck: (deck: string) => void;
   period: string;
   onSelectPeriod: (period: "all" | "today" | "7days" | "30days") => void;
+  turnFilter?: string;
   classIcons?: Record<ClassKey, string>;
   onSelectStats: (stats: MatchupStats) => void;
 };
@@ -56,6 +58,7 @@ export function MatchupAnalyticsView({
   onSelectDeck,
   period,
   onSelectPeriod,
+  turnFilter = "all",
   classIcons,
   onSelectStats,
 }: MatchupAnalyticsViewProps) {
@@ -100,41 +103,14 @@ export function MatchupAnalyticsView({
     return list;
   }, [currentRecords, total]);
 
-  // 得意対面・苦手対面（3戦以上の対面から算出）
-  const { favoredMatchups, unfavorableMatchups } = useMemo(() => {
-    const oppDecks = getDecks(currentRecords);
-    const matchupList: {
-      opponentDeck: string;
-      stats: MatchupStats;
-      winRate: number;
-    }[] = [];
-
-    for (const opp of oppDecks) {
-      if (selectedDeck && opp === selectedDeck) continue;
-      const stats = calculateMatchup(records, selectedDeck || (myDecks[0] ?? oppDecks[0]), opp);
-      if (stats.total > 0) {
-        matchupList.push({
-          opponentDeck: opp,
-          stats,
-          winRate: stats.winRate,
-        });
-      }
-    }
-
-    // 勝利降順（得意）
-    const favored = [...matchupList]
-      .filter((m) => m.winRate >= 50)
-      .sort((a, b) => b.winRate - a.winRate || b.stats.total - a.stats.total)
-      .slice(0, 3);
-
-    // 勝利昇順（苦手）
-    const unfavorable = [...matchupList]
-      .filter((m) => m.winRate < 50)
-      .sort((a, b) => a.winRate - b.winRate || b.stats.total - a.stats.total)
-      .slice(0, 3);
-
-    return { favoredMatchups: favored, unfavorableMatchups: unfavorable };
-  }, [currentRecords, records, selectedDeck, myDecks]);
+  // 得意対面・苦手対面・参考記録のランキング計算（Wilson score lower bound 方式）
+  const { favored: favoredMatchups, unfavorable: unfavorableMatchups, referenceRecords } = useMemo(() => {
+    return calculateMatchupRankings({
+      records,
+      selectedDeck,
+      turnFilter,
+    });
+  }, [records, selectedDeck, turnFilter]);
 
   // SVG ドーナツチャートのセグメント計算
   const donutSegments = useMemo(() => {
@@ -317,22 +293,29 @@ export function MatchupAnalyticsView({
           </div>
         )}
 
-        {/* 得意対面・苦手対面 */}
+        {/* 得意対面・苦手対面・参考記録 */}
+        {(favoredMatchups.length > 0 || unfavorableMatchups.length > 0 || referenceRecords.length > 0) && (
+          <p className="ranking-method-note">
+            ※ 得意・苦手対面は対戦回数{MIN_MATCHES_FOR_RANKING}戦以上を対象に、Wilsonスコア（統計的下限値）を元に対戦回数と勝率のバランスを考慮して順位決定しています。信頼度は対戦回数に基づく目安です。
+          </p>
+        )}
+
+        {/* 得意対面 */}
         {favoredMatchups.length > 0 && (
           <div className="favored-matchups-section">
             <div className="matchup-sub-header">
               <TrendingUp size={16} color="#10b981" />
-              <h4>得意対面</h4>
+              <h4>得意対面（{MIN_MATCHES_FOR_RANKING}戦以上）</h4>
             </div>
             <div className="matchup-quick-list">
-              {favoredMatchups.map((m, idx) => (
+              {favoredMatchups.map((m) => (
                 <div
                   key={m.opponentDeck}
                   className="quick-matchup-item"
                   onClick={() => onSelectStats(m.stats)}
                 >
                   <div className="quick-item-left">
-                    <span className="quick-rank-badge rank-high">#{idx + 1}</span>
+                    <span className="quick-rank-badge rank-high">#{m.rank}</span>
                     <ClassIcon
                       deckName={m.opponentDeck}
                       size={22}
@@ -343,14 +326,22 @@ export function MatchupAnalyticsView({
                           : undefined
                       }
                     />
-                    <span className="quick-deck-name">{m.opponentDeck}</span>
+                    <div className="quick-deck-info">
+                      <span className="quick-deck-name">{m.opponentDeck}</span>
+                      <span
+                        className={`confidence-badge confidence-${m.confidence.level}`}
+                        title={m.confidence.description}
+                      >
+                        {m.confidence.label}
+                      </span>
+                    </div>
                   </div>
                   <div className="quick-item-right">
                     <strong className="quick-rate win-rate-high">
-                      {m.winRate.toFixed(0)}%
+                      {m.winRate.toFixed(1)}%
                     </strong>
                     <span className="quick-stats-count">
-                      {m.stats.wins}勝{m.stats.losses}敗
+                      {m.wins}勝{m.losses}敗（計{m.total}戦）
                     </span>
                   </div>
                 </div>
@@ -359,21 +350,22 @@ export function MatchupAnalyticsView({
           </div>
         )}
 
+        {/* 苦手対面 */}
         {unfavorableMatchups.length > 0 && (
           <div className="unfavorable-matchups-section">
             <div className="matchup-sub-header">
               <TrendingDown size={16} color="#f43f5e" />
-              <h4>苦手対面</h4>
+              <h4>苦手対面（{MIN_MATCHES_FOR_RANKING}戦以上）</h4>
             </div>
             <div className="matchup-quick-list">
-              {unfavorableMatchups.map((m, idx) => (
+              {unfavorableMatchups.map((m) => (
                 <div
                   key={m.opponentDeck}
                   className="quick-matchup-item"
                   onClick={() => onSelectStats(m.stats)}
                 >
                   <div className="quick-item-left">
-                    <span className="quick-rank-badge rank-low">#{idx + 1}</span>
+                    <span className="quick-rank-badge rank-low">#{m.rank}</span>
                     <ClassIcon
                       deckName={m.opponentDeck}
                       size={22}
@@ -384,14 +376,79 @@ export function MatchupAnalyticsView({
                           : undefined
                       }
                     />
-                    <span className="quick-deck-name">{m.opponentDeck}</span>
+                    <div className="quick-deck-info">
+                      <span className="quick-deck-name">{m.opponentDeck}</span>
+                      <span
+                        className={`confidence-badge confidence-${m.confidence.level}`}
+                        title={m.confidence.description}
+                      >
+                        {m.confidence.label}
+                      </span>
+                    </div>
                   </div>
                   <div className="quick-item-right">
                     <strong className="quick-rate win-rate-low">
-                      {m.winRate.toFixed(0)}%
+                      {m.winRate.toFixed(1)}%
                     </strong>
                     <span className="quick-stats-count">
-                      {m.stats.wins}勝{m.stats.losses}敗
+                      {m.wins}勝{m.losses}敗（計{m.total}戦）
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* 参考記録（10戦未満・五分など） */}
+        {referenceRecords.length > 0 && (
+          <div className="reference-matchups-section">
+            <div className="matchup-sub-header">
+              <Info size={16} color="#94a3b8" />
+              <h4>
+                参考記録
+                <span className="reference-header-hint">（{MIN_MATCHES_FOR_RANKING}戦未満）</span>
+              </h4>
+            </div>
+            <div className="matchup-quick-list">
+              {referenceRecords.map((m) => (
+                <div
+                  key={m.opponentDeck}
+                  className="quick-matchup-item reference-item"
+                  onClick={() => onSelectStats(m.stats)}
+                >
+                  <div className="quick-item-left">
+                    <ClassIcon
+                      deckName={m.opponentDeck}
+                      size={22}
+                      showBadge
+                      customUrl={
+                        classIcons
+                          ? classIcons[getDeckClassKey(m.opponentDeck) as ClassKey]
+                          : undefined
+                      }
+                    />
+                    <div className="quick-deck-info">
+                      <div style={{ display: "flex", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                        <span className="quick-deck-name">{m.opponentDeck}</span>
+                        <span
+                          className={`confidence-badge confidence-${m.confidence.level}`}
+                          title={m.confidence.description}
+                        >
+                          {m.confidence.label}
+                        </span>
+                      </div>
+                      <span className="reference-reason-badge">
+                        対象外理由: {m.reason}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="quick-item-right">
+                    <strong className="quick-rate win-rate-ref">
+                      {m.winRate.toFixed(1)}%
+                    </strong>
+                    <span className="quick-stats-count">
+                      {m.wins}勝{m.losses}敗（計{m.total}戦）
                     </span>
                   </div>
                 </div>
