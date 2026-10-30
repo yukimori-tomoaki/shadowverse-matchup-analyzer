@@ -2058,7 +2058,7 @@ footer button { display: flex; align-items: center; gap: 5px; border: 0; color: 
   flex-direction: column;
   align-items: center;
   gap: 14px;
-  padding: 10px 0;
+  padding: 6px 0 4px;
 }
 .chart-title {
   font-size: 13px;
@@ -2069,8 +2069,8 @@ footer button { display: flex; align-items: center; gap: 5px; border: 0; color: 
 }
 .donut-center-container {
   position: relative;
-  width: 170px;
-  height: 170px;
+  width: clamp(164px, 46vw, 200px);
+  height: clamp(164px, 46vw, 200px);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -2078,7 +2078,18 @@ footer button { display: flex; align-items: center; gap: 5px; border: 0; color: 
 .donut-svg {
   width: 100%;
   height: 100%;
-  transform: rotate(-90deg);
+  overflow: visible;
+}
+.donut-segment-path {
+  transition: filter 0.15s ease, opacity 0.15s ease;
+}
+.donut-segment-other {
+  cursor: pointer;
+  outline: none;
+}
+.donut-segment-other:hover,
+.donut-segment-other:focus-visible {
+  filter: brightness(1.22);
 }
 .donut-center-text {
   position: absolute;
@@ -2102,22 +2113,41 @@ footer button { display: flex; align-items: center; gap: 5px; border: 0; color: 
   letter-spacing: 0.05em;
 }
 .donut-legend-wrap {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: center;
-  gap: 8px 12px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
   width: 100%;
+}
+@media (min-width: 768px) {
+  .donut-legend-wrap {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
 }
 .donut-legend-tag {
   display: flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
   font-size: 11px;
   color: var(--text);
   background: var(--panel-2);
-  padding: 4px 8px;
-  border-radius: 6px;
+  padding: 6px 10px;
+  border-radius: 8px;
   border: 1px solid var(--line);
+  text-align: left;
+}
+.donut-legend-other-btn {
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.donut-legend-other-btn:hover {
+  border-color: var(--cyan);
+  background: var(--card-hover);
+}
+.donut-legend-other-btn.active {
+  border-color: var(--cyan);
+  background: rgba(var(--cyan-rgb), 0.12);
 }
 .legend-color-dot {
   width: 8px;
@@ -2126,9 +2156,169 @@ footer button { display: flex; align-items: center; gap: 5px; border: 0; color: 
   flex-shrink: 0;
 }
 .legend-deck-name {
+  flex: 1;
+  min-width: 0;
   font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .legend-deck-pct {
+  color: var(--muted);
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+  margin-left: auto;
+}
+.legend-other-chevron {
+  flex-shrink: 0;
+  color: var(--muted);
+  transition: transform 0.18s ease, color 0.18s ease;
+}
+.legend-other-chevron.open {
+  transform: rotate(90deg);
+  color: var(--cyan);
+}
+
+/* 「その他」の内訳ポップオーバー */
+.other-breakdown-popover {
+  width: 100%;
+  background: var(--panel-2);
+  border: 1px solid var(--cyan);
+  border-radius: 12px;
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+}
+.other-popover-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.other-popover-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.other-popover-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.other-popover-summary {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--cyan);
+  background: rgba(var(--cyan-rgb), 0.12);
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+.other-popover-close {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+.other-popover-close:hover {
+  color: var(--text);
+  border-color: var(--cyan);
+}
+.other-popover-note {
+  margin: 0;
+  font-size: 11px;
+  color: var(--muted);
+}
+.other-breakdown-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 220px;
+  overflow-y: auto;
+  padding-top: 4px;
+  border-top: 1px solid var(--line);
+}
+.other-breakdown-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+}
+.other-breakdown-deck {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  flex: 1;
+}
+.other-breakdown-name {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.other-breakdown-stats {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+.other-breakdown-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+.other-breakdown-pct {
+  font-size: 11px;
+  color: var(--muted);
+  min-width: 38px;
+  text-align: right;
+}
+
+/* データ0件時の空表示 */
+.donut-empty-state {
+  width: 100%;
+  padding: 28px 16px;
+  border: 1px dashed var(--line);
+  border-radius: 12px;
+  background: var(--panel-2);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: 6px;
+}
+.donut-empty-icon {
+  color: var(--muted);
+  opacity: 0.7;
+}
+.donut-empty-title {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+.donut-empty-sub {
+  margin: 0;
+  font-size: 11px;
   color: var(--muted);
 }
 

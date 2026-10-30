@@ -1,19 +1,24 @@
 "use client";
 
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import {
   ChevronDown,
+  ChevronRight,
   Info,
   PieChart as PieIcon,
   TrendingDown,
   TrendingUp,
+  X,
 } from "lucide-react";
 import type { MatchRecord, MatchupStats } from "@/types/match";
 import type { ClassKey } from "@/types/classIcon";
 import {
   calculateMatchupRankings,
+  calculateOpponentDistribution,
+  describeDonutSegmentPath,
   getMyDecks,
   MIN_MATCHES_FOR_RANKING,
+  OTHER_THRESHOLD_PERCENT,
 } from "@/lib/matchupCalculator";
 import { getDeckClassKey } from "@/constants/classIcons";
 import { ClassIcon } from "@/components/ClassIcon";
@@ -30,26 +35,9 @@ export type MatchupAnalyticsViewProps = {
   onSelectStats: (stats: MatchupStats) => void;
 };
 
-// クラスカラー
-const CLASS_COLORS: Record<string, string> = {
-  エルフ: "#10b981",
-  ロイヤル: "#eab308",
-  ウィッチ: "#a855f7",
-  ドラゴン: "#f97316",
-  ナイトメア: "#ec4899",
-  ネクロマンサー: "#ec4899",
-  ヴァンパイア: "#e11d48",
-  ビショップ: "#38bdf8",
-  ネメシス: "#06b6d4",
-  ニュートラル: "#94a3b8",
-};
-
-function getDeckColor(name: string): string {
-  for (const [cls, color] of Object.entries(CLASS_COLORS)) {
-    if (name.includes(cls)) return color;
-  }
-  return "#38bdf8";
-}
+const DONUT_CENTER = 70;
+const DONUT_INNER_RADIUS = 46;
+const DONUT_OUTER_RADIUS = 62;
 
 export function MatchupAnalyticsView({
   records,
@@ -62,46 +50,21 @@ export function MatchupAnalyticsView({
   classIcons,
   onSelectStats,
 }: MatchupAnalyticsViewProps) {
+  const [showOtherDetail, setShowOtherDetail] = useState(false);
+
   const myDecks = useMemo(() => getMyDecks(records), [records]);
   const activeDeckList = myDecks.length > 0 ? myDecks : allDecks;
 
-  // 選択デッキに応じたレコード絞り込み
-  const currentRecords = useMemo(() => {
-    if (!selectedDeck) return records;
-    return records.filter((r) => r.myDeck === selectedDeck);
+  // 対戦相手のデッキ分布（12時方向開始・時計回り・2%未満「その他」統合）
+  const distribution = useMemo(() => {
+    return calculateOpponentDistribution(records, {
+      selectedDeck,
+    });
   }, [records, selectedDeck]);
 
-  const total = currentRecords.length;
-  const wins = currentRecords.filter((r) => r.result === "WIN").length;
-  const losses = total - wins;
-  const overallWinRate = total > 0 ? (wins / total) * 100 : 0;
-
-  // 先攻・後攻集計
-  const firstMatches = currentRecords.filter((r) => r.turn === "先攻");
-  const firstWins = firstMatches.filter((r) => r.result === "WIN").length;
-  const firstRate = firstMatches.length > 0 ? (firstWins / firstMatches.length) * 100 : 0;
-
-  const secondMatches = currentRecords.filter((r) => r.turn === "後攻");
-  const secondWins = secondMatches.filter((r) => r.result === "WIN").length;
-  const secondRate = secondMatches.length > 0 ? (secondWins / secondMatches.length) * 100 : 0;
-
-  // 対戦相手のデッキ分布（ドーナツチャート用）
-  const opponentDistribution = useMemo(() => {
-    const map = new Map<string, number>();
-    for (const r of currentRecords) {
-      if (!r.opponentDeck) continue;
-      map.set(r.opponentDeck, (map.get(r.opponentDeck) ?? 0) + 1);
-    }
-    const list = Array.from(map.entries())
-      .map(([deck, count]) => ({
-        deck,
-        count,
-        percent: total > 0 ? (count / total) * 100 : 0,
-        color: getDeckColor(deck),
-      }))
-      .sort((a, b) => b.count - a.count);
-    return list;
-  }, [currentRecords, total]);
+  const { totalMatches, items: legendItems, segments: donutSegments, otherBreakdown } = distribution;
+  const otherItem = useMemo(() => legendItems.find((item) => item.isOther) ?? null, [legendItems]);
+  const isOtherOpen = showOtherDetail && otherBreakdown.length > 0;
 
   // 得意対面・苦手対面・参考記録のランキング計算（Wilson score lower bound 方式）
   const { favored: favoredMatchups, unfavorable: unfavorableMatchups, referenceRecords } = useMemo(() => {
@@ -112,31 +75,11 @@ export function MatchupAnalyticsView({
     });
   }, [records, selectedDeck, turnFilter]);
 
-  // SVG ドーナツチャートのセグメント計算
-  const donutSegments = useMemo(() => {
-    if (total === 0) return [];
-    let cumulative = 0;
-    const circumference = 2 * Math.PI * 54; // 半径54
-
-    return opponentDistribution.map((item) => {
-      const strokeLength = (item.count / total) * circumference;
-      const strokeDasharray = `${strokeLength} ${circumference - strokeLength}`;
-      const strokeDashoffset = -cumulative;
-      cumulative += strokeLength;
-
-      return {
-        ...item,
-        strokeDasharray,
-        strokeDashoffset,
-      };
-    });
-  }, [opponentDistribution, total]);
-
   return (
     <div className="matchup-analytics-view">
-      {/* デッキ相性データ パネル（添付画像2スタイル） */}
+      {/* デッキ相性データ パネル */}
       <div className="matchup-data-card">
-        {/* ヘッダー */}
+        {/* 1. デッキ相性データの見出し */}
         <div className="card-header-row">
           <div className="header-title-left">
             <span className="icon-wrap-purple">
@@ -146,14 +89,17 @@ export function MatchupAnalyticsView({
           </div>
         </div>
 
-        {/* 使用デッキ選択（全デッキ合計 or 個別デッキ） */}
+        {/* 2. 使用デッキフィルター（全デッキ合計 or 個別デッキ） */}
         <div className="deck-selector-row">
           <span className="selector-label">使用デッキ</span>
           <div className="selector-input-wrap">
             <select
               className="deck-select-dropdown"
               value={selectedDeck}
-              onChange={(e) => onSelectDeck(e.target.value)}
+              onChange={(e) => {
+                setShowOtherDetail(false);
+                onSelectDeck(e.target.value);
+              }}
             >
               <option value="">全デッキ合計</option>
               {activeDeckList.map((deck) => (
@@ -166,132 +112,240 @@ export function MatchupAnalyticsView({
           </div>
         </div>
 
-        {/* 対象期間ピルボタングループ */}
+        {/* 3. 対象期間フィルター */}
         <div className="period-pill-group">
           <span className="period-label">対象期間</span>
           <div className="pills-track">
             <button
               type="button"
               className={`pill-btn ${period === "today" ? "active" : ""}`}
-              onClick={() => onSelectPeriod("today")}
+              onClick={() => {
+                setShowOtherDetail(false);
+                onSelectPeriod("today");
+              }}
             >
               今日
             </button>
             <button
               type="button"
               className={`pill-btn ${period === "7days" ? "active" : ""}`}
-              onClick={() => onSelectPeriod("7days")}
+              onClick={() => {
+                setShowOtherDetail(false);
+                onSelectPeriod("7days");
+              }}
             >
               過去7日
             </button>
             <button
               type="button"
               className={`pill-btn ${period === "all" ? "active" : ""}`}
-              onClick={() => onSelectPeriod("all")}
+              onClick={() => {
+                setShowOtherDetail(false);
+                onSelectPeriod("all");
+              }}
             >
               全期間
             </button>
           </div>
         </div>
 
-        {/* 期間の戦績 */}
-        <div className="period-record-banner">
-          <span className="banner-label">期間の戦績</span>
-          <div className="banner-nums">
-            <strong className="num-total">{total}</strong>
-            <small>戦</small>
-            <span className="banner-sep">|</span>
-            <strong className="num-win">{wins}</strong>
-            <small>勝</small>
-            <strong className="num-loss">{losses}</strong>
-            <small>敗</small>
-          </div>
-        </div>
+        {/* 4. 対戦相手のデッキ分布（ドーナツグラフ・凡例・その他の内訳確認） */}
+        <div className="donut-chart-section">
+          <h4 className="chart-title">対戦相手のデッキ分布</h4>
 
-        {/* 3連勝率カード */}
-        <div className="winrate-triad-cards">
-          <div className="winrate-card">
-            <span className="winrate-title">勝率</span>
-            <div className="winrate-value winrate-cyan">
-              <strong>{overallWinRate.toFixed(0)}</strong>
-              <span>%</span>
+          {totalMatches === 0 ? (
+            <div className="donut-empty-state" role="status">
+              <PieIcon size={28} className="donut-empty-icon" />
+              <p className="donut-empty-title">条件に一致する対戦データがありません</p>
+              <p className="donut-empty-sub">
+                使用デッキや対象期間を変更してご確認ください。
+              </p>
             </div>
-          </div>
-
-          <div className="winrate-card">
-            <span className="winrate-title">先攻勝率</span>
-            <div className="winrate-value winrate-teal">
-              <strong>{firstRate.toFixed(0)}</strong>
-              <span>%</span>
-            </div>
-            <span className="winrate-count">{firstMatches.length}戦</span>
-          </div>
-
-          <div className="winrate-card">
-            <span className="winrate-title">後攻勝率</span>
-            <div className="winrate-value winrate-pink">
-              <strong>{secondRate.toFixed(0)}</strong>
-              <span>%</span>
-            </div>
-            <span className="winrate-count">{secondMatches.length}戦</span>
-          </div>
-        </div>
-
-        {/* 対戦相手のデッキ分布（ドーナツチャート） */}
-        {total > 0 && (
-          <div className="donut-chart-section">
-            <h4 className="chart-title">対戦相手のデッキ分布</h4>
-
-            <div className="donut-center-container">
-              <svg viewBox="0 0 140 140" className="donut-svg">
-                {/* 背景サークル */}
-                <circle
-                  cx="70"
-                  cy="70"
-                  r="54"
-                  fill="transparent"
-                  stroke="rgba(255, 255, 255, 0.05)"
-                  strokeWidth="16"
-                />
-                {/* ドーナツセグメント */}
-                {donutSegments.map((seg) => (
+          ) : (
+            <>
+              {/* ドーナツグラフ（12時方向開始・時計回り・隙間付き） */}
+              <div className="donut-center-container">
+                <svg
+                  viewBox="0 0 140 140"
+                  className="donut-svg"
+                  role="img"
+                  aria-label={`対戦相手のデッキ分布（総対戦数 ${totalMatches}戦）`}
+                >
+                  {/* テーマに合わせたベースリング */}
                   <circle
-                    key={seg.deck}
-                    cx="70"
-                    cy="70"
-                    r="54"
+                    cx={DONUT_CENTER}
+                    cy={DONUT_CENTER}
+                    r={(DONUT_INNER_RADIUS + DONUT_OUTER_RADIUS) / 2}
                     fill="transparent"
-                    stroke={seg.color}
-                    strokeWidth="16"
-                    strokeDasharray={seg.strokeDasharray}
-                    strokeDashoffset={seg.strokeDashoffset}
-                    transform="rotate(-90 70 70)"
-                    style={{ transition: "stroke-dasharray 0.4s ease" }}
+                    stroke="var(--panel)"
+                    strokeWidth={DONUT_OUTER_RADIUS - DONUT_INNER_RADIUS + 2}
                   />
-                ))}
-              </svg>
-              {/* 中央テキスト */}
-              <div className="donut-center-text">
-                <span className="center-count">{total}</span>
-                <span className="center-sub">TOTAL</span>
-              </div>
-            </div>
+                  {/* ドーナツセグメント */}
+                  {donutSegments.map((seg) => {
+                    const pathData = describeDonutSegmentPath(
+                      DONUT_CENTER,
+                      DONUT_CENTER,
+                      DONUT_INNER_RADIUS,
+                      DONUT_OUTER_RADIUS,
+                      seg.startAngle,
+                      seg.endAngle
+                    );
+                    const isOther = Boolean(seg.isOther);
+                    return (
+                      <path
+                        key={seg.deck}
+                        d={pathData}
+                        fill={seg.color}
+                        stroke="var(--panel)"
+                        strokeWidth={donutSegments.length > 1 ? 1 : 0}
+                        strokeLinejoin="round"
+                        className={`donut-segment-path ${isOther ? "donut-segment-other" : ""}`}
+                        onClick={
+                          isOther
+                            ? () => setShowOtherDetail((prev) => !prev)
+                            : undefined
+                        }
+                        onKeyDown={
+                          isOther
+                            ? (e) => {
+                                if (e.key === "Enter" || e.key === " ") {
+                                  e.preventDefault();
+                                  setShowOtherDetail((prev) => !prev);
+                                }
+                              }
+                            : undefined
+                        }
+                        role={isOther ? "button" : undefined}
+                        tabIndex={isOther ? 0 : undefined}
+                        aria-label={
+                          isOther
+                            ? `その他: ${seg.count}戦 (${seg.percent.toFixed(1)}%) - タップして内訳を表示`
+                            : `${seg.deck}: ${seg.count}戦 (${seg.percent.toFixed(1)}%)`
+                        }
+                      >
+                        <title>{`${seg.deck}: ${seg.count}戦 (${seg.percent.toFixed(1)}%)`}</title>
+                      </path>
+                    );
+                  })}
+                </svg>
 
-            {/* ドーナツ凡例 */}
-            <div className="donut-legend-wrap">
-              {opponentDistribution.slice(0, 6).map((item) => (
-                <div key={item.deck} className="donut-legend-tag">
-                  <span
-                    className="legend-color-dot"
-                    style={{ backgroundColor: item.color }}
-                  />
-                  <span className="legend-deck-name">{item.deck}</span>
-                  <span className="legend-deck-pct">{item.percent.toFixed(0)}%</span>
+                {/* 中央テキスト */}
+                <div className="donut-center-text">
+                  <span className="center-count">{totalMatches}</span>
+                  <span className="center-sub">TOTAL</span>
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </div>
+
+              {/* ドーナツ凡例（スマホ2列グリッド対応） */}
+              <div className="donut-legend-wrap">
+                {legendItems.map((item) => {
+                  if (item.isOther) {
+                    return (
+                      <button
+                        key={item.deck}
+                        type="button"
+                        className={`donut-legend-tag donut-legend-other-btn ${isOtherOpen ? "active" : ""}`}
+                        onClick={() => setShowOtherDetail((prev) => !prev)}
+                        aria-expanded={isOtherOpen}
+                        title={`「その他」の内訳を確認（${item.count}戦 / ${item.percent.toFixed(1)}%）`}
+                      >
+                        <span
+                          className="legend-color-dot"
+                          style={{ backgroundColor: item.color }}
+                        />
+                        <span className="legend-deck-name">{item.deck}</span>
+                        <span className="legend-deck-pct">
+                          {item.percent.toFixed(1)}%
+                        </span>
+                        <ChevronRight
+                          size={13}
+                          className={`legend-other-chevron ${isOtherOpen ? "open" : ""}`}
+                        />
+                      </button>
+                    );
+                  }
+
+                  return (
+                    <div
+                      key={item.deck}
+                      className="donut-legend-tag"
+                      title={`${item.deck}: ${item.count}戦 (${item.percent.toFixed(1)}%)`}
+                    >
+                      <span
+                        className="legend-color-dot"
+                        style={{ backgroundColor: item.color }}
+                      />
+                      <span className="legend-deck-name">{item.deck}</span>
+                      <span className="legend-deck-pct">
+                        {item.percent.toFixed(1)}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+
+              {/* その他の内訳確認ポップオーバー */}
+              {isOtherOpen && otherItem && (
+                <div
+                  className="other-breakdown-popover"
+                  role="dialog"
+                  aria-label="その他のデッキ内訳"
+                >
+                  <div className="other-popover-header">
+                    <div className="other-popover-title-wrap">
+                      <span
+                        className="legend-color-dot"
+                        style={{ backgroundColor: otherItem.color }}
+                      />
+                      <h5 className="other-popover-title">「その他」の内訳</h5>
+                      <span className="other-popover-summary">
+                        計{otherItem.count}戦 ({otherItem.percent.toFixed(1)}%)
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      className="other-popover-close"
+                      onClick={() => setShowOtherDetail(false)}
+                      aria-label="内訳を閉じる"
+                    >
+                      <X size={15} />
+                    </button>
+                  </div>
+                  <p className="other-popover-note">
+                    構成比{OTHER_THRESHOLD_PERCENT}%未満のデッキ（{otherBreakdown.length}種類）を統合しています
+                  </p>
+                  <div className="other-breakdown-list">
+                    {otherBreakdown.map((sub) => (
+                      <div key={sub.deck} className="other-breakdown-row">
+                        <div className="other-breakdown-deck">
+                          <ClassIcon
+                            deckName={sub.deck}
+                            size={18}
+                            showBadge
+                            customUrl={
+                              classIcons
+                                ? classIcons[getDeckClassKey(sub.deck) as ClassKey]
+                                : undefined
+                            }
+                          />
+                          <span className="other-breakdown-name" title={sub.deck}>
+                            {sub.deck}
+                          </span>
+                        </div>
+                        <div className="other-breakdown-stats">
+                          <span className="other-breakdown-count">{sub.count}戦</span>
+                          <span className="other-breakdown-pct">
+                            {sub.percent.toFixed(1)}%
+                          </span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+        </div>
 
         {/* 得意対面・苦手対面・参考記録 */}
         {(favoredMatchups.length > 0 || unfavorableMatchups.length > 0 || referenceRecords.length > 0) && (
