@@ -277,6 +277,7 @@ export default function PublicBoardPage() {
                   filters={filters}
                   decks={periodDecks}
                   deckLabel="使用デッキ"
+                  classIcons={classIcons}
                   showClass={false}
                   showDeck={false}
                   showMultiDeck={true}

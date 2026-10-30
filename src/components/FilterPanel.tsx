@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { CalendarDays, ChevronDown, Filter, SlidersHorizontal } from "lucide-react";
 import type { MatchFilters } from "@/types/match";
+import type { ClassKey } from "@/types/classIcon";
 import { CLASS_ORDER } from "@/constants/decks";
 import { MultiSelectDropdown } from "@/components/MultiSelectDropdown";
 
@@ -11,6 +12,7 @@ export type FilterPanelProps = {
   decks?: string[];
   deckLabel?: string;
   classes?: readonly string[];
+  classIcons?: Record<ClassKey, string>;
   showPeriod?: boolean;
   showClass?: boolean;
   showDeck?: boolean;
@@ -27,6 +29,7 @@ export function FilterPanel({
   decks = [],
   deckLabel = "自分デッキ",
   classes = CLASS_ORDER,
+  classIcons,
   showPeriod = true,
   showClass = false,
   showDeck = true,
@@ -39,10 +42,21 @@ export function FilterPanel({
 }: FilterPanelProps) {
   const [isExpanded, setIsExpanded] = useState(defaultExpanded);
 
+  const selectedDeckCount =
+    filters.selectedDecks === undefined
+      ? decks.length
+      : decks.filter((d) => filters.selectedDecks!.includes(d)).length;
+
+  const isMultiDeckFiltered =
+    showMultiDeck &&
+    filters.selectedDecks !== undefined &&
+    selectedDeckCount < decks.length;
+
   // Active filter summary text
   const activeFilterSummary = [
     filters.period !== "all" && "期間指定",
     filters.myDeck && `デッキ:${filters.myDeck}`,
+    isMultiDeckFiltered && `${deckLabel}:${selectedDeckCount}/${decks.length}件`,
     filters.turn !== "all" && `手番:${filters.turn}`,
     filters.selectedClass && `クラス:${filters.selectedClass}`,
   ]
@@ -139,6 +153,7 @@ export function FilterPanel({
               label={deckLabel}
               items={decks}
               selectedItems={filters.selectedDecks}
+              classIcons={classIcons}
               onChange={(selected) => onChange({ selectedDecks: selected })}
             />
           )}

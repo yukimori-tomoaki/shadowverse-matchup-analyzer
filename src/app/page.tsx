@@ -17,6 +17,7 @@ import { startTransition, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { CsvUploader } from "@/components/CsvUploader";
 import { DeckStats } from "@/components/DeckStats";
+import { FilterPanel } from "@/components/FilterPanel";
 import { MatchupDetail } from "@/components/MatchupDetail";
 import { MatchupTable } from "@/components/MatchupTable";
 import { EnvironmentSelector } from "@/components/EnvironmentSelector";
@@ -166,6 +167,16 @@ export default function Home() {
   }, [envRecords, filters.period, filters.startDate, filters.endDate]);
 
   const periodDecks = useMemo(() => getDecks(inPeriodRecords), [inPeriodRecords]);
+
+  // 表示対象の行デッキ（使用デッキ複数選択フィルター適用）
+  const rowDecks = useMemo(() => {
+    if (filters.selectedDecks === undefined) {
+      return periodDecks;
+    }
+    return periodDecks.filter((deck) => filters.selectedDecks!.includes(deck));
+  }, [periodDecks, filters.selectedDecks]);
+
+  const columnDecks = periodDecks;
 
   const addRecords = async (incoming: MatchRecord[]) => {
     const duplicates = findDuplicates(records, incoming);
@@ -369,16 +380,48 @@ export default function Home() {
             {/* 相性ページ: 相性表のマトリクス表示機能のみ */}
             {activeMobileTab === "matchup" && (
               <>
-                <MatchupTable
-                  records={inPeriodRecords}
-                  rowDecks={periodDecks}
-                  columnDecks={periodDecks}
-                  turnFilter={filters.turn}
+                <FilterPanel
+                  filters={filters}
+                  decks={periodDecks}
+                  deckLabel="使用デッキ"
                   classIcons={classIcons}
-                  selectedDeck={filters.myDeck}
-                  onSelect={setDetail}
-                  onSelectDeck={(deck) => setFilters((prev) => ({ ...prev, myDeck: deck }))}
+                  showClass={false}
+                  showDeck={false}
+                  showMultiDeck={true}
+                  showTurn={false}
+                  showExcludeMirror={false}
+                  collapsible={true}
+                  defaultExpanded={false}
+                  onChange={(next) => setFilters((current) => ({ ...current, ...next }))}
                 />
+
+                {rowDecks.length > 0 && columnDecks.length > 0 ? (
+                  <MatchupTable
+                    records={inPeriodRecords}
+                    rowDecks={rowDecks}
+                    columnDecks={columnDecks}
+                    turnFilter={filters.turn}
+                    classIcons={classIcons}
+                    selectedDeck={filters.myDeck}
+                    onSelect={setDetail}
+                    onSelectDeck={(deck) => setFilters((prev) => ({ ...prev, myDeck: deck }))}
+                  />
+                ) : (
+                  <div
+                    className="panel"
+                    style={{
+                      textAlign: "center",
+                      padding: "48px 20px",
+                      color: "var(--muted)",
+                    }}
+                  >
+                    <p style={{ margin: 0, fontSize: "14px" }}>
+                      {filters.selectedDecks !== undefined && filters.selectedDecks.length === 0
+                        ? "使用デッキが選択されていません。「使用デッキ」フィルターから1つ以上のデッキを選択してください。"
+                        : "指定された条件に一致する対戦データがありません。表示条件を変更してください。"}
+                    </p>
+                  </div>
+                )}
               </>
             )}
 

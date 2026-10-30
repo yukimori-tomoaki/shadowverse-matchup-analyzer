@@ -2487,3 +2487,623 @@ footer button { display: flex; align-items: center; gap: 5px; border: 0; color: 
 .win-rate-ref {
   color: var(--text);
 }
+
+
+/* ========================================================
+   Deck Multi-Select Filter & Bottom Sheet UI
+======================================================== */
+.deck-filter-selector {
+  flex: 1 1 100%;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-top: 4px;
+}
+
+.deck-filter-summary-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.deck-filter-summary-left {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.deck-filter-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.deck-filter-count-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 700;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--muted);
+}
+
+.deck-filter-count-badge.is-all {
+  color: var(--cyan);
+  border-color: rgba(var(--cyan-rgb), 0.35);
+  background: rgba(var(--cyan-rgb), 0.1);
+}
+
+.deck-filter-count-badge.is-partial {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  background: rgba(var(--cyan-rgb), 0.15);
+}
+
+.deck-filter-count-badge.is-empty {
+  color: var(--orange);
+  border-color: rgba(242, 160, 93, 0.4);
+  background: rgba(242, 160, 93, 0.1);
+}
+
+.deck-selector-open-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 44px;
+  padding: 8px 16px;
+  border-radius: 8px;
+  border: 1px solid var(--cyan);
+  background: rgba(var(--cyan-rgb), 0.12);
+  color: var(--cyan);
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.deck-selector-open-btn:hover:not(:disabled) {
+  background: var(--cyan);
+  color: #05131f;
+  box-shadow: 0 0 16px rgba(var(--cyan-rgb), 0.3);
+}
+
+.deck-selector-open-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* 選択済みチップ一覧 */
+.deck-selected-chips-area {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--panel-2);
+  border: 1px solid var(--line);
+  min-height: 46px;
+}
+
+.deck-chips-empty-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.deck-selected-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 6px 4px 8px;
+  border-radius: 999px;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.deck-chip-name {
+  max-width: 150px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.deck-chip-remove-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  transition: all 0.12s ease;
+  flex-shrink: 0;
+}
+
+.deck-chip-remove-btn:hover {
+  background: rgba(244, 63, 94, 0.18);
+  color: var(--red);
+}
+
+.deck-chip-more-btn {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px dashed var(--cyan);
+  background: rgba(var(--cyan-rgb), 0.1);
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.deck-chip-more-btn:hover {
+  background: rgba(var(--cyan-rgb), 0.2);
+}
+
+/* ボトムシート（スマホ） & ポップオーバーモーダル（PC） */
+.deck-sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 110;
+  background: rgba(0, 0, 0, 0.72);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.deck-sheet-panel {
+  width: 100%;
+  max-width: 680px;
+  max-height: min(84vh, 740px);
+  background: var(--modal-bg);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.deck-sheet-grabber {
+  display: none;
+  justify-content: center;
+  padding: 8px 0 2px;
+  flex-shrink: 0;
+}
+
+.deck-sheet-grabber span {
+  width: 40px;
+  height: 4px;
+  border-radius: 999px;
+  background: var(--line);
+}
+
+/* 固定ヘッダー */
+.deck-sheet-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.deck-sheet-title-group {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.deck-sheet-title {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.deck-sheet-live-count {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--cyan);
+  background: rgba(var(--cyan-rgb), 0.12);
+  border: 1px solid rgba(var(--cyan-rgb), 0.35);
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-sheet-close-btn {
+  width: 44px;
+  height: 44px;
+  display: grid;
+  place-items: center;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--muted);
+  flex-shrink: 0;
+  transition: all 0.15s ease;
+}
+
+.deck-sheet-close-btn:hover {
+  color: var(--text);
+  border-color: var(--cyan);
+}
+
+/* 固定検索欄＆一括操作バー */
+.deck-sheet-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 18px;
+  background: var(--panel);
+  border-bottom: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.deck-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.deck-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--muted);
+  pointer-events: none;
+}
+
+.deck-search-input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 38px 0 36px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.deck-search-input:focus {
+  border-color: var(--cyan);
+}
+
+.deck-search-clear-btn {
+  position: absolute;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  display: grid;
+  place-items: center;
+  border-radius: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+}
+
+.deck-search-clear-btn:hover {
+  color: var(--text);
+  background: var(--card-hover);
+}
+
+.deck-bulk-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.deck-bulk-main-group,
+.deck-bulk-search-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.deck-bulk-btn {
+  min-height: 38px;
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  transition: all 0.14s ease;
+}
+
+.deck-bulk-btn:hover:not(:disabled) {
+  border-color: var(--cyan);
+  color: var(--cyan);
+  background: var(--card-hover);
+}
+
+.deck-bulk-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.deck-bulk-btn.is-search-scope {
+  border-color: rgba(var(--cyan-rgb), 0.4);
+  color: var(--cyan);
+}
+
+/* 独立スクロール領域（クラス別グループ＆デッキ一覧） */
+.deck-sheet-scroll-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 14px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.deck-sheet-empty {
+  padding: 36px 16px;
+  text-align: center;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.deck-class-group {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--panel);
+  overflow: hidden;
+}
+
+.deck-class-group-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 4px 10px 4px 6px;
+  background: var(--panel-2);
+  border-bottom: 1px solid var(--line);
+}
+
+.deck-class-collapse-btn {
+  flex: 1;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: left;
+}
+
+.deck-class-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.deck-class-count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.deck-class-chevron {
+  margin-left: auto;
+  color: var(--muted);
+  transition: transform 0.18s ease;
+}
+
+.deck-class-chevron.collapsed {
+  transform: rotate(-90deg);
+}
+
+.deck-class-toggle-all-btn {
+  min-height: 32px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--line);
+  background: var(--panel);
+  color: var(--cyan);
+  font-size: 11px;
+  font-weight: 600;
+  flex-shrink: 0;
+  transition: all 0.14s ease;
+}
+
+.deck-class-toggle-all-btn:hover {
+  border-color: var(--cyan);
+  background: var(--card-hover);
+}
+
+/* デッキ2列グリッド */
+.deck-items-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  padding: 10px;
+}
+
+.deck-grid-item {
+  min-height: 46px;
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  text-align: left;
+  transition: all 0.14s ease;
+}
+
+.deck-grid-item:hover {
+  border-color: var(--cyan);
+  background: var(--card-hover);
+}
+
+.deck-grid-item.is-selected {
+  border-color: var(--cyan);
+  background: rgba(var(--cyan-rgb), 0.13);
+  box-shadow: inset 0 0 0 1px rgba(var(--cyan-rgb), 0.35);
+}
+
+.deck-grid-item-name {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.3;
+  color: var(--text);
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
+}
+
+.deck-grid-check {
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1.5px solid var(--muted);
+  background: transparent;
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  transition: all 0.14s ease;
+}
+
+.deck-grid-check.checked {
+  background: var(--cyan);
+  border-color: var(--cyan);
+  color: #04131f;
+}
+
+/* 固定フッター（キャンセル・適用） */
+.deck-sheet-footer {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 10px;
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line);
+  background: var(--modal-bg);
+  flex-shrink: 0;
+}
+
+.deck-sheet-cancel-btn {
+  min-height: 46px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+  background: var(--panel-2);
+  color: var(--text);
+  font-size: 13px;
+  font-weight: 700;
+  transition: all 0.15s ease;
+}
+
+.deck-sheet-cancel-btn:hover {
+  border-color: var(--cyan);
+  color: var(--cyan);
+}
+
+.deck-sheet-apply-btn {
+  min-height: 46px;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: 1px solid var(--cyan);
+  background: var(--cyan);
+  color: #05131f;
+  font-size: 13px;
+  font-weight: 800;
+  box-shadow: 0 0 18px rgba(var(--cyan-rgb), 0.25);
+  transition: all 0.15s ease;
+}
+
+.deck-sheet-apply-btn:hover {
+  filter: brightness(1.1);
+}
+
+@keyframes deckSheetSlideUp {
+  from {
+    transform: translateY(100%);
+  }
+  to {
+    transform: translateY(0);
+  }
+}
+
+/* スマートフォン：ボトムシート表示 */
+@media (max-width: 768px) {
+  .deck-selector-open-btn {
+    width: 100%;
+  }
+
+  .deck-sheet-backdrop {
+    align-items: flex-end;
+    padding: 0;
+  }
+
+  .deck-sheet-panel {
+    max-width: 100%;
+    max-height: 88dvh;
+    border-radius: 20px 20px 0 0;
+    border-bottom: 0;
+    animation: deckSheetSlideUp 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .deck-sheet-grabber {
+    display: flex;
+  }
+
+  .deck-sheet-header {
+    padding: 10px 14px 12px;
+  }
+
+  .deck-sheet-controls {
+    padding: 10px 14px;
+  }
+
+  .deck-sheet-scroll-body {
+    padding: 12px 14px;
+  }
+
+  .deck-items-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .deck-sheet-footer {
+    padding: 10px 14px calc(12px + env(safe-area-inset-bottom, 0px));
+  }
+}
