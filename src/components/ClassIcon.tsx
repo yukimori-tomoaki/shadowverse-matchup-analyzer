@@ -103,14 +103,54 @@ export function ClassIcon({
     resolvedKey = getDeckClassKey(deckName);
   }
 
+  const innerSize = Math.max(14, Math.round(size * 0.72));
+
+  // Fallback neutral icon when class is unclassified ("その他", etc.)
   if (!resolvedKey) {
-    return null;
+    const neutralColor = "#94a3b8";
+    return (
+      <div
+        className="class-icon-wrapper neutral"
+        style={{
+          width: size,
+          height: size,
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          position: "relative",
+          borderRadius: "50%",
+          overflow: "hidden",
+          backgroundColor: showBadge ? "rgba(148, 163, 184, 0.14)" : "transparent",
+          border: showBadge ? "1px solid rgba(148, 163, 184, 0.4)" : "none",
+          ...style,
+        }}
+        title={classNameProp || deckName || "その他"}
+      >
+        <svg
+          width={innerSize}
+          height={innerSize}
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke={neutralColor}
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        >
+          <polygon
+            points="12 2 22 12 12 22 2 12 12 2"
+            fill={neutralColor}
+            fillOpacity="0.2"
+          />
+          <circle cx="12" cy="12" r="2.5" fill={neutralColor} />
+        </svg>
+      </div>
+    );
   }
 
   const meta = CLASS_METAS[resolvedKey];
-  const innerSize = Math.max(14, Math.round(size * 0.72));
 
-  const content = (
+  return (
     <div
       className={`class-icon-wrapper ${resolvedKey}`}
       style={{
@@ -149,6 +189,4 @@ export function ClassIcon({
       )}
     </div>
   );
-
-  return content;
 }

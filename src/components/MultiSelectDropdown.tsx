@@ -8,6 +8,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { ClassIcon } from "@/components/ClassIcon";
 import { getClassKeyFromName, getDeckClassKey } from "@/constants/classIcons";
 import {
@@ -195,6 +196,251 @@ export function MultiSelectDropdown({
   const draftCount = draftSelected.size;
   const isDraftAllSelected = totalCount > 0 && draftCount === totalCount;
 
+  const sheetModal =
+    isOpen && typeof document !== "undefined"
+      ? createPortal(
+          <div
+            className="deck-sheet-backdrop"
+            onClick={handleCancel}
+            role="presentation"
+          >
+            <div
+              className="deck-sheet-panel"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="deck-sheet-title"
+              onClick={(e) => e.stopPropagation()}
+            >
+              {/* スマホ用ドラッグハンドル装飾 */}
+              <div className="deck-sheet-grabber" aria-hidden="true">
+                <span />
+              </div>
+
+              {/* 固定ヘッダー：タイトル・選択件数・閉じるボタン */}
+              <div className="deck-sheet-header">
+                <div className="deck-sheet-title-group">
+                  <h3 id="deck-sheet-title" className="deck-sheet-title">
+                    デッキ選択
+                  </h3>
+                  <span className="deck-sheet-live-count">
+                    {draftCount} / {totalCount}件 選択中
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  className="deck-sheet-close-btn"
+                  onClick={handleCancel}
+                  aria-label="キャンセルして閉じる"
+                >
+                  <X size={18} />
+                </button>
+              </div>
+
+              {/* 固定検索＆一括操作バー */}
+              <div className="deck-sheet-controls">
+                {/* デッキ名検索欄 */}
+                <div className="deck-search-box">
+                  <Search size={15} className="deck-search-icon" />
+                  <input
+                    type="text"
+                    className="deck-search-input"
+                    placeholder="デッキ名で検索..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    aria-label="デッキ名で検索"
+                  />
+                  {searchQuery && (
+                    <button
+                      type="button"
+                      className="deck-search-clear-btn"
+                      onClick={() => setSearchQuery("")}
+                      aria-label="検索キーワードをクリア"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
+
+                {/* 全選択・全解除ボタン（操作対象を明示） */}
+                <div className="deck-bulk-actions">
+                  <div className="deck-bulk-main-group">
+                    <button
+                      type="button"
+                      className="deck-bulk-btn"
+                      onClick={handleSelectAllDecks}
+                      disabled={isDraftAllSelected}
+                    >
+                      全選択 ({totalCount})
+                    </button>
+                    <button
+                      type="button"
+                      className="deck-bulk-btn"
+                      onClick={handleClearAllDecks}
+                      disabled={draftCount === 0}
+                    >
+                      全解除
+                    </button>
+                  </div>
+
+                  {/* 検索中のみ：検索結果に対する一括選択・解除ボタン */}
+                  {hasActiveSearch && filteredItems.length > 0 && (
+                    <div className="deck-bulk-search-group">
+                      <button
+                        type="button"
+                        className="deck-bulk-btn is-search-scope"
+                        onClick={handleSelectFiltered}
+                      >
+                        検索結果を選択 ({filteredItems.length})
+                      </button>
+                      <button
+                        type="button"
+                        className="deck-bulk-btn is-search-scope"
+                        onClick={handleClearFiltered}
+                      >
+                        検索結果を解除
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 独立スクロール領域：クラス別グループ＆2列グリッドデッキ一覧 */}
+              <div className="deck-sheet-scroll-body">
+                {classGroups.length === 0 ? (
+                  <div className="deck-sheet-empty">
+                    <p>「{searchQuery}」に一致するデッキが見つかりません。</p>
+                  </div>
+                ) : (
+                  classGroups.map((group) => {
+                    const isCollapsed = collapsedClasses.has(group.className);
+                    const classKey = getClassKeyFromName(group.className);
+                    const selectedInClass = group.decks.filter((d) =>
+                      draftSelected.has(d)
+                    ).length;
+                    const allInClassSelected =
+                      group.decks.length > 0 &&
+                      selectedInClass === group.decks.length;
+
+                    return (
+                      <div key={group.className} className="deck-class-group">
+                        {/* クラス見出し（折りたたみ＋クラス一括選択） */}
+                        <div className="deck-class-group-header">
+                          <button
+                            type="button"
+                            className="deck-class-collapse-btn"
+                            onClick={() =>
+                              handleToggleClassCollapse(group.className)
+                            }
+                            aria-expanded={!isCollapsed}
+                          >
+                            <ClassIcon
+                              className={group.className}
+                              size={20}
+                              showBadge
+                              customUrl={
+                                classKey && classIcons
+                                  ? classIcons[classKey]
+                                  : undefined
+                              }
+                            />
+                            <span className="deck-class-name">
+                              {group.className}
+                            </span>
+                            <span className="deck-class-count">
+                              {selectedInClass}/{group.decks.length}
+                            </span>
+                            <ChevronDown
+                              size={15}
+                              className={`deck-class-chevron ${
+                                isCollapsed ? "collapsed" : ""
+                              }`}
+                            />
+                          </button>
+
+                          <button
+                            type="button"
+                            className="deck-class-toggle-all-btn"
+                            onClick={() => handleToggleClassDecks(group.decks)}
+                          >
+                            {allInClassSelected ? "クラス解除" : "クラス全選択"}
+                          </button>
+                        </div>
+
+                        {/* 2列グリッドのデッキ一覧 */}
+                        {!isCollapsed && (
+                          <div className="deck-items-grid">
+                            {group.decks.map((deck) => {
+                              const isChecked = draftSelected.has(deck);
+                              const deckClassKey = getDeckClassKey(deck);
+                              return (
+                                <button
+                                  key={deck}
+                                  type="button"
+                                  role="checkbox"
+                                  aria-checked={isChecked}
+                                  className={`deck-grid-item ${
+                                    isChecked ? "is-selected" : ""
+                                  }`}
+                                  onClick={() => handleToggleDraftDeck(deck)}
+                                  title={deck}
+                                >
+                                  <ClassIcon
+                                    deckName={deck}
+                                    size={20}
+                                    showBadge
+                                    customUrl={
+                                      deckClassKey && classIcons
+                                        ? classIcons[deckClassKey]
+                                        : undefined
+                                    }
+                                  />
+                                  <span className="deck-grid-item-name">
+                                    {deck}
+                                  </span>
+                                  <span
+                                    className={`deck-grid-check ${
+                                      isChecked ? "checked" : ""
+                                    }`}
+                                    aria-hidden="true"
+                                  >
+                                    {isChecked && (
+                                      <Check size={12} strokeWidth={3} />
+                                    )}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })
+                )}
+              </div>
+
+              {/* 固定フッター：キャンセル・適用ボタン */}
+              <div className="deck-sheet-footer">
+                <button
+                  type="button"
+                  className="deck-sheet-cancel-btn"
+                  onClick={handleCancel}
+                >
+                  キャンセル
+                </button>
+                <button
+                  type="button"
+                  className="deck-sheet-apply-btn"
+                  onClick={handleApply}
+                >
+                  適用する ({draftCount}件)
+                </button>
+              </div>
+            </div>
+          </div>,
+          document.body
+        )
+      : null;
+
   return (
     <div className="deck-filter-selector">
       {/* 上段：ラベル・選択中のデッキ数・「デッキを選択する」ボタン */}
@@ -282,245 +528,7 @@ export function MultiSelectDropdown({
         )}
       </div>
 
-      {/* ボトムシート（スマホ） / ポップオーバーモーダル（PC） */}
-      {isOpen && (
-        <div
-          className="deck-sheet-backdrop"
-          onClick={handleCancel}
-          role="presentation"
-        >
-          <div
-            className="deck-sheet-panel"
-            role="dialog"
-            aria-modal="true"
-            aria-labelledby="deck-sheet-title"
-            onClick={(e) => e.stopPropagation()}
-          >
-            {/* スマホ用ドラッグハンドル装飾 */}
-            <div className="deck-sheet-grabber" aria-hidden="true">
-              <span />
-            </div>
-
-            {/* 固定ヘッダー：タイトル・選択件数・閉じるボタン */}
-            <div className="deck-sheet-header">
-              <div className="deck-sheet-title-group">
-                <h3 id="deck-sheet-title" className="deck-sheet-title">
-                  デッキ選択
-                </h3>
-                <span className="deck-sheet-live-count">
-                  {draftCount} / {totalCount}件 選択中
-                </span>
-              </div>
-              <button
-                type="button"
-                className="deck-sheet-close-btn"
-                onClick={handleCancel}
-                aria-label="キャンセルして閉じる"
-              >
-                <X size={18} />
-              </button>
-            </div>
-
-            {/* 固定検索＆一括操作バー */}
-            <div className="deck-sheet-controls">
-              {/* デッキ名検索欄 */}
-              <div className="deck-search-box">
-                <Search size={15} className="deck-search-icon" />
-                <input
-                  type="text"
-                  className="deck-search-input"
-                  placeholder="デッキ名で検索..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  aria-label="デッキ名で検索"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    className="deck-search-clear-btn"
-                    onClick={() => setSearchQuery("")}
-                    aria-label="検索キーワードをクリア"
-                  >
-                    <X size={14} />
-                  </button>
-                )}
-              </div>
-
-              {/* 全選択・全解除ボタン（操作対象を明示） */}
-              <div className="deck-bulk-actions">
-                <div className="deck-bulk-main-group">
-                  <button
-                    type="button"
-                    className="deck-bulk-btn"
-                    onClick={handleSelectAllDecks}
-                    disabled={isDraftAllSelected}
-                  >
-                    全選択 ({totalCount})
-                  </button>
-                  <button
-                    type="button"
-                    className="deck-bulk-btn"
-                    onClick={handleClearAllDecks}
-                    disabled={draftCount === 0}
-                  >
-                    全解除
-                  </button>
-                </div>
-
-                {/* 検索中のみ：検索結果に対する一括選択・解除ボタン */}
-                {hasActiveSearch && filteredItems.length > 0 && (
-                  <div className="deck-bulk-search-group">
-                    <button
-                      type="button"
-                      className="deck-bulk-btn is-search-scope"
-                      onClick={handleSelectFiltered}
-                    >
-                      検索結果を選択 ({filteredItems.length})
-                    </button>
-                    <button
-                      type="button"
-                      className="deck-bulk-btn is-search-scope"
-                      onClick={handleClearFiltered}
-                    >
-                      検索結果を解除
-                    </button>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* 独立スクロール領域：クラス別グループ＆2列グリッドデッキ一覧 */}
-            <div className="deck-sheet-scroll-body">
-              {classGroups.length === 0 ? (
-                <div className="deck-sheet-empty">
-                  <p>「{searchQuery}」に一致するデッキが見つかりません。</p>
-                </div>
-              ) : (
-                classGroups.map((group) => {
-                  const isCollapsed = collapsedClasses.has(group.className);
-                  const classKey = getClassKeyFromName(group.className);
-                  const selectedInClass = group.decks.filter((d) =>
-                    draftSelected.has(d)
-                  ).length;
-                  const allInClassSelected =
-                    group.decks.length > 0 &&
-                    selectedInClass === group.decks.length;
-
-                  return (
-                    <div key={group.className} className="deck-class-group">
-                      {/* クラス見出し（折りたたみ＋クラス一括選択） */}
-                      <div className="deck-class-group-header">
-                        <button
-                          type="button"
-                          className="deck-class-collapse-btn"
-                          onClick={() =>
-                            handleToggleClassCollapse(group.className)
-                          }
-                          aria-expanded={!isCollapsed}
-                        >
-                          <ClassIcon
-                            className={group.className}
-                            size={20}
-                            showBadge
-                            customUrl={
-                              classKey && classIcons
-                                ? classIcons[classKey]
-                                : undefined
-                            }
-                          />
-                          <span className="deck-class-name">
-                            {group.className}
-                          </span>
-                          <span className="deck-class-count">
-                            {selectedInClass}/{group.decks.length}
-                          </span>
-                          <ChevronDown
-                            size={15}
-                            className={`deck-class-chevron ${
-                              isCollapsed ? "collapsed" : ""
-                            }`}
-                          />
-                        </button>
-
-                        <button
-                          type="button"
-                          className="deck-class-toggle-all-btn"
-                          onClick={() => handleToggleClassDecks(group.decks)}
-                        >
-                          {allInClassSelected ? "クラス解除" : "クラス全選択"}
-                        </button>
-                      </div>
-
-                      {/* 2列グリッドのデッキ一覧 */}
-                      {!isCollapsed && (
-                        <div className="deck-items-grid">
-                          {group.decks.map((deck) => {
-                            const isChecked = draftSelected.has(deck);
-                            const deckClassKey = getDeckClassKey(deck);
-                            return (
-                              <button
-                                key={deck}
-                                type="button"
-                                role="checkbox"
-                                aria-checked={isChecked}
-                                className={`deck-grid-item ${
-                                  isChecked ? "is-selected" : ""
-                                }`}
-                                onClick={() => handleToggleDraftDeck(deck)}
-                                title={deck}
-                              >
-                                <ClassIcon
-                                  deckName={deck}
-                                  size={20}
-                                  showBadge
-                                  customUrl={
-                                    deckClassKey && classIcons
-                                      ? classIcons[deckClassKey]
-                                      : undefined
-                                  }
-                                />
-                                <span className="deck-grid-item-name">
-                                  {deck}
-                                </span>
-                                <span
-                                  className={`deck-grid-check ${
-                                    isChecked ? "checked" : ""
-                                  }`}
-                                  aria-hidden="true"
-                                >
-                                  {isChecked && <Check size={12} strokeWidth={3} />}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })
-              )}
-            </div>
-
-            {/* 固定フッター：キャンセル・適用ボタン */}
-            <div className="deck-sheet-footer">
-              <button
-                type="button"
-                className="deck-sheet-cancel-btn"
-                onClick={handleCancel}
-              >
-                キャンセル
-              </button>
-              <button
-                type="button"
-                className="deck-sheet-apply-btn"
-                onClick={handleApply}
-              >
-                適用する ({draftCount}件)
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      {sheetModal}
     </div>
   );
 }
