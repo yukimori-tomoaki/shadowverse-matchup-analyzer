@@ -6,6 +6,7 @@ import {
   OTHER_DECK_LABEL,
   OTHER_THRESHOLD_PERCENT,
   calculateDeckTotalStats,
+  calculateDeckUsageStats,
   calculateMatchupRankings,
   calculateOpponentDistribution,
   describeDonutSegmentPath,
@@ -240,10 +241,15 @@ console.log("=== テスト開始: デッキ相性データ・ドーナツグラ�
 
   const dist = calculateOpponentDistribution(records, { selectedDeck: "テンポエルフ" });
   const totalStats = calculateDeckTotalStats(records, "テンポエルフ");
+  const usageStats = calculateDeckUsageStats(records);
+  const tempoElfUsage = usageStats.find((u) => u.deckName === "テンポエルフ");
 
-  // 円グラフの総対戦数と相性表の行ヘッダー総対戦数が一致すること（101戦）
+  // 円グラフの総対戦数・相性表の行ヘッダー総対戦数・戦績データ分析のデッキ別対戦数がすべて一致すること（101戦）
   assert.equal(dist.totalMatches, 101);
   assert.equal(totalStats.total, 101);
+  assert.equal(tempoElfUsage?.total, 101);
+  assert.equal(tempoElfUsage?.wins, totalStats.wins);
+  assert.equal(tempoElfUsage?.losses, totalStats.losses);
 
   // 円グラフの内訳に逆方向加算分とミラーマッチが含まれること
   // 海賊ロイヤル: 40 + 19 = 59戦, ランプドラゴン: 27戦, スペルウィッチ: 10戦, テンポエルフ(ミラー): 5戦

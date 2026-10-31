@@ -301,18 +301,27 @@ export type DeckUsageStat = {
 };
 
 /**
- * 自分が使用したデッキごとの使用回数・勝率を計算
+ * デッキごとの対戦数・勝率を計算（相性表・円グラフと同一の双方向集計基準）
  */
 export function calculateDeckUsageStats(records: MatchRecord[]): DeckUsageStat[] {
   const map = new Map<string, { total: number; wins: number; losses: number }>();
 
   for (const r of records) {
-    if (!r.myDeck) continue;
-    const current = map.get(r.myDeck) ?? { total: 0, wins: 0, losses: 0 };
-    current.total += 1;
-    if (r.result === "WIN") current.wins += 1;
-    else current.losses += 1;
-    map.set(r.myDeck, current);
+    if (r.myDeck) {
+      const current = map.get(r.myDeck) ?? { total: 0, wins: 0, losses: 0 };
+      current.total += 1;
+      if (r.result === "WIN") current.wins += 1;
+      else current.losses += 1;
+      map.set(r.myDeck, current);
+    }
+
+    if (r.opponentDeck && r.opponentDeck !== r.myDeck) {
+      const current = map.get(r.opponentDeck) ?? { total: 0, wins: 0, losses: 0 };
+      current.total += 1;
+      if (r.result === "LOSS") current.wins += 1;
+      else current.losses += 1;
+      map.set(r.opponentDeck, current);
+    }
   }
 
   const list = Array.from(map.entries()).map(([deckName, stat]) => ({
