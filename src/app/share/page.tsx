@@ -142,10 +142,9 @@ export default function PublicBoardPage() {
     return filterByEnvironment(records, selectedEnv);
   }, [records, selectedEnv]);
 
-  // 2. 期間フィルター & 同デッキ対戦（ミラーマッチ）の常時除外
+  // 2. 期間フィルター（相性表の同デッキ対角セルはハイフン表示し、円グラフではミラーマッチも集計する）
   const displayRecords = useMemo(() => {
-    const inPeriod = filterPeriod(envRecords, filters.period, filters.startDate, filters.endDate);
-    return inPeriod.filter((r) => r.myDeck !== r.opponentDeck);
+    return filterPeriod(envRecords, filters.period, filters.startDate, filters.endDate);
   }, [envRecords, filters.period, filters.startDate, filters.endDate]);
 
   // 期間内・ミラー除外後の全デッキ一覧（相手列デッキに使用）

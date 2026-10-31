@@ -146,7 +146,9 @@ export function calculateDeckTotalStats(
   turnFilter: string = "all"
 ) {
   const forwardMatches = records.filter((r) => r.myDeck === deck);
-  const reverseMatches = records.filter((r) => r.opponentDeck === deck);
+  const reverseMatches = records.filter(
+    (r) => r.opponentDeck === deck && r.myDeck !== deck
+  );
 
   type NormalizedItem = {
     turn: "先攻" | "後攻" | string;
@@ -479,7 +481,9 @@ export function calculateOverallMatchup(
   opponentDeck: string,
   turnFilter: string = "all"
 ): MatchupStats {
-  const matchingRecords = records.filter((r) => r.opponentDeck === opponentDeck);
+  const matchingRecords = records.filter(
+    (r) => r.opponentDeck === opponentDeck && r.myDeck !== opponentDeck
+  );
 
   const filtered =
     turnFilter === "all"
@@ -559,8 +563,8 @@ export function calculateMatchupRankings(
     minMatches = MIN_MATCHES_FOR_RANKING,
   } = options;
 
-  // 対戦相手デッキの一覧を抽出
-  const opponentDecks = getOpponentDecks(records);
+  // 対戦相手デッキの一覧を抽出（デッキ選択時は双方向集計のため全デッキから取得し、同デッキは下で除外）
+  const opponentDecks = selectedDeck ? getDecks(records) : getOpponentDecks(records);
 
   const favoredCandidates: Array<{
     opponentDeck: string;
@@ -773,11 +777,30 @@ export function calculateOpponentDistribution(
     minSegmentDegrees = MIN_DONUT_SEGMENT_DEGREES,
   } = options;
 
-  const filtered = selectedDeck
-    ? records.filter((r) => r.myDeck === selectedDeck && Boolean(r.opponentDeck))
-    : records.filter((r) => Boolean(r.opponentDeck));
+  const countMap = new Map<string, number>();
+  let totalMatches = 0;
 
-  const totalMatches = filtered.length;
+  if (selectedDeck) {
+    for (const r of records) {
+      if (!r.myDeck || !r.opponentDeck) continue;
+      if (r.myDeck === selectedDeck) {
+        // 順方向およびミラーマッチ（r.opponentDeck === selectedDeck も1回として記録）
+        countMap.set(r.opponentDeck, (countMap.get(r.opponentDeck) ?? 0) + 1);
+        totalMatches += 1;
+      } else if (r.opponentDeck === selectedDeck) {
+        // 逆方向（相手が selectedDeck を使用した対戦は r.myDeck を対戦相手として記録）
+        countMap.set(r.myDeck, (countMap.get(r.myDeck) ?? 0) + 1);
+        totalMatches += 1;
+      }
+    }
+  } else {
+    for (const r of records) {
+      if (!r.opponentDeck) continue;
+      countMap.set(r.opponentDeck, (countMap.get(r.opponentDeck) ?? 0) + 1);
+      totalMatches += 1;
+    }
+  }
+
   if (totalMatches === 0) {
     return {
       totalMatches: 0,
@@ -786,11 +809,6 @@ export function calculateOpponentDistribution(
       otherBreakdown: [],
       rawItems: [],
     };
-  }
-
-  const countMap = new Map<string, number>();
-  for (const r of filtered) {
-    countMap.set(r.opponentDeck, (countMap.get(r.opponentDeck) ?? 0) + 1);
   }
 
   const orderedIndex = new Map<string, number>(

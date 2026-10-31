@@ -5,6 +5,8 @@ import {
   OTHER_DECK_COLOR,
   OTHER_DECK_LABEL,
   OTHER_THRESHOLD_PERCENT,
+  calculateDeckTotalStats,
+  calculateMatchupRankings,
   calculateOpponentDistribution,
   describeDonutSegmentPath,
   filterByEnvironment,
@@ -223,6 +225,57 @@ console.log("=== テスト開始: デッキ相性データ・ドーナツグラ�
   assert.equal(empty.items.length, 0);
   assert.equal(empty.segments.length, 0);
   assert.equal(empty.otherBreakdown.length, 0);
+}
+
+// 7. 相性表との双方向集計一致（72 + 29 = 101戦）およびミラーマッチの円グラフ記録・ランキング除外
+{
+  // テンポエルフの順方向72試合（うちミラーマッチ5試合を含む） + 逆方向29試合 = 合計101試合
+  const records = [
+    ...makeMatches(40, "テンポエルフ", "海賊ロイヤル"),
+    ...makeMatches(27, "テンポエルフ", "ランプドラゴン"),
+    ...makeMatches(5, "テンポエルフ", "テンポエルフ"), // ミラーマッチ 5試合
+    ...makeMatches(19, "海賊ロイヤル", "テンポエルフ"), // 逆方向 19試合
+    ...makeMatches(10, "スペルウィッチ", "テンポエルフ"), // 逆方向 10試合
+  ];
+
+  const dist = calculateOpponentDistribution(records, { selectedDeck: "テンポエルフ" });
+  const totalStats = calculateDeckTotalStats(records, "テンポエルフ");
+
+  // 円グラフの総対戦数と相性表の行ヘッダー総対戦数が一致すること（101戦）
+  assert.equal(dist.totalMatches, 101);
+  assert.equal(totalStats.total, 101);
+
+  // 円グラフの内訳に逆方向加算分とミラーマッチが含まれること
+  // 海賊ロイヤル: 40 + 19 = 59戦, ランプドラゴン: 27戦, スペルウィッチ: 10戦, テンポエルフ(ミラー): 5戦
+  const royalItem = dist.items.find((x) => x.deck === "海賊ロイヤル");
+  const dragonItem = dist.items.find((x) => x.deck === "ランプドラゴン");
+  const witchItem = dist.items.find((x) => x.deck === "スペルウィッチ");
+  const mirrorItem = dist.items.find((x) => x.deck === "テンポエルフ");
+
+  assert.equal(royalItem?.count, 59);
+  assert.equal(dragonItem?.count, 27);
+  assert.equal(witchItem?.count, 10);
+  assert.equal(mirrorItem?.count, 5, "円グラフにはミラーマッチも記録・表示されること");
+
+  // 得意・苦手・参考記録ランキングには同デッキ（ミラーマッチ）が含まれないこと
+  const rankings = calculateMatchupRankings({
+    records,
+    selectedDeck: "テンポエルフ",
+  });
+  const allRankedOpponents = [
+    ...rankings.favored.map((x) => x.opponentDeck),
+    ...rankings.unfavorable.map((x) => x.opponentDeck),
+    ...rankings.referenceRecords.map((x) => x.opponentDeck),
+  ];
+  assert(
+    !allRankedOpponents.includes("テンポエルフ"),
+    "得意・苦手・参考記録には同デッキ（ミラーマッチ）を表示しないこと"
+  );
+  // 逆方向のみの対戦相手（スペルウィッチ 10戦）もランキング集計対象に含まれること
+  assert(
+    allRankedOpponents.includes("スペルウィッチ"),
+    "逆方向のみの対戦相手も得意・苦手・参考記録の集計対象に含まれること"
+  );
 }
 
 console.log("すべてのドーナツグラフ・対戦相手分布テストに合格しました！");

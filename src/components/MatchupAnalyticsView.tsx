@@ -16,7 +16,7 @@ import {
   calculateMatchupRankings,
   calculateOpponentDistribution,
   describeDonutSegmentPath,
-  getMyDecks,
+  getDecks,
   MIN_MATCHES_FOR_RANKING,
   OTHER_THRESHOLD_PERCENT,
 } from "@/lib/matchupCalculator";
@@ -52,8 +52,8 @@ export function MatchupAnalyticsView({
 }: MatchupAnalyticsViewProps) {
   const [showOtherDetail, setShowOtherDetail] = useState(false);
 
-  const myDecks = useMemo(() => getMyDecks(records), [records]);
-  const activeDeckList = myDecks.length > 0 ? myDecks : allDecks;
+  const allRecordDecks = useMemo(() => getDecks(records), [records]);
+  const activeDeckList = allRecordDecks.length > 0 ? allRecordDecks : allDecks;
 
   // 対戦相手のデッキ分布（12時方向開始・時計回り・2%未満「その他」統合）
   const distribution = useMemo(() => {
